@@ -1,69 +1,87 @@
-export type ThemeType = 'classic' | 'pekka' | 'edrag' | 'hog' | 'lava';
+export type ThemeType = 'classic' | 'baby' | 'pekka' | 'edrag' | 'hog' | 'lava';
 
 export interface ThemeColors {
   name: string;
+  icon: string; // Filename of the troop icon
   colors: {
-    primary: string;   // Main brand color (usually Gold/Yellow)
-    secondary: string; // Accents (Buttons/Elixir)
-    bg: string;        // Main background
-    surface: string;   // Cards/Modals
-    text: string;      // Main text
-    muted: string;     // Subtext
+    primary: string;
+    secondary: string;
+    bg: string;
+    surface: string;
+    text: string;
+    muted: string;
   };
 }
 
 export const THEMES: Record<ThemeType, ThemeColors> = {
   classic: {
-    name: 'Clash Classic',
+    name: 'Classic Barbarian',
+    icon: 'barbarian.png',
     colors: {
-      primary: '#FACC15',    // Iconic Gold
-      secondary: '#60A5FA',  // Elixir Blue
-      bg: '#292524',         // Stone Dark Gray (Walls)
-      surface: '#44403C',    // Lighter Stone
-      text: '#FFFFFF',       // White text with shadow
-      muted: '#A8A29E',      // Stone Grey Text
+      primary: '#FACC15',    // Gold
+      secondary: '#60A5FA',  // Elixir
+      bg: '#292524',         // Stone
+      surface: '#44403C',    // Light Stone
+      text: '#FFFFFF',
+      muted: '#A8A29E',
+    },
+  },
+  baby: {
+    name: 'Baby Dragon',
+    icon: 'baby_dragon.png',
+    colors: {
+      primary: '#22C55E',    // Green
+      secondary: '#F97316',  // Orange fire
+      bg: '#052e16',         // Dark Forest
+      surface: '#14532d',    // Leafy green
+      text: '#F0FDF4',
+      muted: '#86EFAC',
     },
   },
   pekka: {
     name: 'P.E.K.K.A',
+    icon: 'p_e_k_k_a.png',
     colors: {
-      primary: '#A855F7',    // Purple
-      secondary: '#00FFFF',  // Neon Blue
-      bg: '#0F172A',         // Metallic Dark Grey
-      surface: '#1E293B',    // Lighter Metallic
+      primary: '#A855F7',
+      secondary: '#00FFFF',
+      bg: '#0F172A',
+      surface: '#1E293B',
       text: '#F8FAFC',
       muted: '#94A3B8',
     },
   },
   edrag: {
     name: 'Electro Dragon',
+    icon: 'electro_dragon.png',
     colors: {
-      primary: '#0EA5E9',    // Electric Blue
-      secondary: '#FACC15',  // Lightning Yellow
-      bg: '#334155',         // Stormy Grey
-      surface: '#475569',    // Thunderhead Grey
+      primary: '#0EA5E9',
+      secondary: '#FACC15',
+      bg: '#334155',
+      surface: '#475569',
       text: '#F0F9FF',
       muted: '#CBD5E1',
     },
   },
   hog: {
     name: 'Hog Rider',
+    icon: 'hog_rider.png',
     colors: {
-      primary: '#854D0E',    // Earthy Brown
-      secondary: '#EC4899',  // Vibrant Pink
-      bg: '#422006',         // Deep Mud
-      surface: '#713F12',    // Leather Brown
-      text: '#FEFCE8',       // Gold-ish White
+      primary: '#854D0E',
+      secondary: '#EC4899',
+      bg: '#422006',
+      surface: '#713F12',
+      text: '#FEFCE8',
       muted: '#D4D4D4',
     },
   },
   lava: {
     name: 'Lava Hound',
+    icon: 'lava_hound.png',
     colors: {
-      primary: '#DC2626',    // Magma Red
-      secondary: '#F97316',  // Lava Orange
-      bg: '#0F0F0F',         // Obsidian Black
-      surface: '#1C1917',    // Ash Grey
+      primary: '#DC2626',
+      secondary: '#F97316',
+      bg: '#0F0F0F',
+      surface: '#1C1917',
       text: '#FAFAF9',
       muted: '#A8A29E',
     },
