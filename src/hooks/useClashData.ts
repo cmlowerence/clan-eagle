@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-// Define the shape of the proxy response
 interface ProxyResponse<T> {
   cached: boolean;
   data: T;
   error?: string;
+  debugUrl?: string; // New debug field
 }
 
 export function useClashData<T>(key: string, endpoint: string) {
@@ -22,17 +22,14 @@ export function useClashData<T>(key: string, endpoint: string) {
     try {
       const storageKey = `clash_cache_${key}`;
       
-      // 1. Check LocalStorage Cache (if not forcing update)
+      // 1. Check LocalStorage (skip if forcing update)
       if (!forceUpdate) {
         const cachedRaw = localStorage.getItem(storageKey);
         if (cachedRaw) {
           try {
             const { data: cachedData, timestamp } = JSON.parse(cachedRaw);
-            const age = (Date.now() - timestamp) / 1000 / 60; // Age in minutes
-            
-            // Valid for 10 minutes
-            if (age < 10) {
-                console.log(`[Cache] Hit for ${key}`);
+            // Cache valid for 10 minutes
+            if ((Date.now() - timestamp) / 1000 / 60 < 10) {
                 setData(cachedData);
                 setIsCached(true);
                 setLastUpdated(new Date(timestamp).toLocaleTimeString());
@@ -40,21 +37,31 @@ export function useClashData<T>(key: string, endpoint: string) {
                 return;
             }
           } catch (e) {
-            console.warn("Cache parse error", e);
             localStorage.removeItem(storageKey);
           }
         }
       }
 
-      // 2. Fetch from our Internal Proxy
-      console.log(`[API] Fetching fresh data for ${key}`);
-      
-      // IMPORTANT: We pass the endpoint as a query param
+      // 2. Fetch from Proxy
+      // Encode the endpoint to ensure special chars like # travel safely to our proxy
       const proxyUrl = `/api/proxy?endpoint=${encodeURIComponent(endpoint)}`;
+      console.log(`[API] Fetching: ${proxyUrl}`);
+      
       const res = await fetch(proxyUrl);
       
+      // 3. Handle Errors with Debug Info
       if (!res.ok) {
-        throw new Error(`Request failed: ${res.status}`);
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+           // It's a JSON error from our Proxy (Good, we can debug)
+           const errJson = await res.json();
+           console.error("[Proxy Error Debug]", errJson);
+           throw new Error(errJson.error + (errJson.debugUrl ? ` (Tried: ${errJson.debugUrl})` : ""));
+        } else {
+           // It's an HTML error (likely 404 Not Found)
+           // This means src/app/api/proxy/route.ts DOES NOT EXIST or is in the wrong place.
+           throw new Error("Proxy Route Not Found. Check file structure: src/app/api/proxy/route.ts");
+        }
       }
 
       const json: ProxyResponse<T> = await res.json();
@@ -63,10 +70,10 @@ export function useClashData<T>(key: string, endpoint: string) {
         throw new Error(json.error);
       }
 
-      // 3. Unwrap and Save
-      // The backend returns { cached: boolean, data: ... }
-      // We want the inner 'data'
-      const actualData = json.data;
+      // 4. Save Data
+      // Our proxy unwraps the backend response, so json is the actual data object or { data: ... }
+      // Based on your backend, it returns { cached: bool, data: ... }. We want .data
+      const actualData = json.data || json; 
 
       localStorage.setItem(storageKey, JSON.stringify({
         data: actualData,
@@ -74,18 +81,17 @@ export function useClashData<T>(key: string, endpoint: string) {
       }));
 
       setData(actualData);
-      setIsCached(false); // It's fresh from the server
+      setIsCached(false);
       setLastUpdated(new Date().toLocaleTimeString());
 
     } catch (err: any) {
-      console.error(`[useClashData] Error:`, err);
+      console.error(`[useClashData] Failed:`, err);
       setError(err.message || "Failed to fetch data");
     } finally {
       setLoading(false);
     }
   }, [key, endpoint]);
 
-  // Initial Load
   useEffect(() => {
     loadData();
   }, [loadData]);
