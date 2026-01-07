@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Luckiest_Guy } from "next/font/google"; // <--- Import from google
 import "./globals.css";
-import ThemeProvider from "@/components/ThemeProvider";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import Navbar from "@/components/Navbar";
 import FaviconManager from "@/components/FaviconManager";
 
