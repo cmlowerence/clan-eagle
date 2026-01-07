@@ -1,16 +1,17 @@
-'use client';
+ 'use client';
 
 import { useClashData } from "@/hooks/useClashData";
 import { getUnitIconPath, UNIT_CATEGORIES, getUnitCategory } from "@/lib/unitHelpers";
 import { timeAgo, saveToHistory, toggleFavorite, isFavorite } from "@/lib/utils";
-import { ArrowLeft, RefreshCw, Shield, Sword, Home, Zap, Clock, Castle, Trophy, ChevronRight, Star } from "lucide-react";
+import { ArrowLeft, RefreshCw, Shield, Sword, Home, Zap, Clock, Castle, Trophy, ChevronRight, Star, Share2 } from "lucide-react"; // Added Share2
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import SkeletonLoader from "@/components/SkeletonLoader";
 import TiltWrapper from "@/components/TiltWrapper";
 import React from "react";
+import ShareProfileModal from "@/components/ShareProfileModal"; // <--- IMPORT
 
-// --- Interfaces ---
+// --- Interfaces (Keep existing) ---
 interface Unit {
   name: string;
   level: number;
@@ -38,6 +39,7 @@ interface PlayerData {
 export default function PlayerPage({ params }: { params: { tag: string } }) {
   const tag = decodeURIComponent(params.tag);
   const [isFav, setIsFav] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false); // <--- NEW STATE
   
   const { data: player, loading, isCached, timestamp, refresh } = useClashData<PlayerData>(`player_${tag}`, `/players/${tag}`);
 
@@ -69,18 +71,14 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
   const elixirSpells = player.spells.filter(s => getUnitCategory(s.name, true) === 'Elixir Spell');
   const darkSpells = player.spells.filter(s => getUnitCategory(s.name, true) === 'Dark Spell');
 
-  // --- UNIT CARD COMPONENT (WITH FIERY EFFECTS) ---
+  // --- UNIT CARD COMPONENT ---
   const UnitCard = ({ unit, type }: { unit: Unit, type: string }) => {
     const iconPath = getUnitIconPath(unit.name);
     const isMax = unit.level === unit.maxLevel;
     const isSpecial = type === 'Hero' || type === 'Pet';
-
-    // Determine Wrapper (Tilt for heroes, Fragment for regular troops)
     const Wrapper = isSpecial ? TiltWrapper : React.Fragment;
-    // Use type assertion to satisfy TypeScript prop requirements for TiltWrapper
     const wrapperProps = isSpecial ? { isMax } as any : {};
 
-    // The actual content inside the card
     const CardContentInner = (
       <>
          <div className="w-12 h-12 relative shrink-0 z-10">
@@ -88,11 +86,9 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
               src={iconPath} 
               onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} 
               alt={unit.name} 
-              // Added 'backface-hidden' for smoother tilt rendering
               className={`object-contain w-full h-full drop-shadow-md transition-transform group-hover:scale-110 backface-hidden ${isMax ? 'brightness-110' : ''}`}
             />
             <div className="hidden absolute top-0 left-0 w-full h-full flex items-center justify-center text-skin-muted opacity-30"><Shield size={24} /></div>
-            {/* Max Badge */}
             {isMax && <div className="absolute -bottom-1 -right-1 bg-skin-primary text-black text-[8px] font-black px-1 py-0.5 rounded shadow-sm border border-white/20 z-20">MAX</div>}
          </div>
          <div className="flex-1 min-w-0 flex flex-col justify-center z-10">
@@ -105,25 +101,14 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
     return (
       <Wrapper {...wrapperProps}>
         {isMax ? (
-          // --- MAX LEVEL: FIERY BORDER STRUCTURE ---
-          // 1. Outer container defines rounded corners and hides overflow of spinning background
-          // p-[3px] defines the thickness of the fire border
           <div className="relative h-full w-full rounded-lg overflow-hidden p-[3px] group transition-all hover:scale-[1.02]">
-             
-             {/* 2. The Spinning Fire Background Layer */}
-             {/* inset-[-50%] makes it larger than card. Conic gradient creates the trail. Blur creates fire look. Spin moves it. */}
              <div className="absolute inset-[-50%] bg-[conic-gradient(transparent,var(--color-primary),transparent_30%)] animate-spin-slow blur-md md:blur-lg opacity-80 group-hover:opacity-100 transition-opacity"></div>
-             
-             {/* 3. Optional: Secondary faster flickering layer for realism */}
              <div className="absolute inset-[-50%] bg-[conic-gradient(transparent,var(--color-primary),transparent_10%)] animate-[spin_2s_linear_infinite_reverse] blur-md opacity-40 mix-blend-overlay animate-pulse-fast"></div>
-
-             {/* 4. The Content Card sitting on top (acting as a mask) */}
              <div className="relative h-full w-full bg-skin-surface/90 backdrop-blur-sm rounded-lg p-2 flex items-center gap-3 z-10">
                 {CardContentInner}
              </div>
           </div>
         ) : (
-          // --- REGULAR LEVEL STRUCTURE ---
           <div className="relative flex items-center gap-3 p-2 rounded-lg border bg-skin-surface border-skin-primary/10 hover:border-skin-primary/30 transition-all overflow-hidden group h-full hover:scale-[1.02]">
              {CardContentInner}
           </div>
@@ -140,16 +125,23 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
         <div className="flex justify-between items-center">
              <Link href="/" className="text-skin-muted text-xs flex items-center gap-1 hover:text-skin-primary"><ArrowLeft size={14}/> Home</Link>
              <div className="flex items-center gap-2">
+               
+               {/* SHARE BUTTON (NEW) */}
+               <button onClick={() => setShowShareModal(true)} className="flex items-center justify-center w-8 h-8 rounded-full bg-skin-surface border border-skin-muted/30 text-skin-muted hover:text-skin-primary hover:border-skin-primary transition-all">
+                  <Share2 size={14} />
+               </button>
+
                <button onClick={handleFav} className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all ${isFav ? 'bg-skin-primary border-skin-primary text-black shadow-[0_0_10px_var(--color-primary)]' : 'bg-skin-surface border-skin-muted/30 text-skin-muted hover:text-skin-primary'}`}>
                   <Star size={14} fill={isFav ? "currentColor" : "none"} />
                </button>
+
                <button onClick={() => refresh()} className="flex items-center gap-2 bg-skin-surface border border-skin-primary/30 px-3 py-1.5 rounded-full hover:bg-skin-primary hover:text-white transition-colors text-[10px] font-bold uppercase tracking-widest">
                  <RefreshCw size={10} className={loading ? "animate-spin" : ""}/> Update
                </button>
              </div>
         </div>
 
-        {/* PLAYER BANNER */}
+        {/* ... PLAYER BANNER (Same as previous) ... */}
         <div className="bg-skin-surface border border-skin-primary/20 rounded-2xl p-5 relative overflow-hidden shadow-2xl">
           <div className="absolute inset-0 bg-gradient-to-br from-skin-bg via-transparent to-skin-primary/10"></div>
           <div className="relative z-10 flex flex-col md:flex-row gap-6">
@@ -194,10 +186,13 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
         </div>
       </div>
 
-      {/* --- UNIT SECTIONS --- */}
+      {/* --- UNIT SECTIONS (Same as before) --- */}
       <section><h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2"><Shield size={18} className="text-skin-primary"/> Heroes & Pets</h3><div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">{homeHeroes.map(h => <UnitCard key={h.name} unit={h} type="Hero" />)}{pets.map(p => <UnitCard key={p.name} unit={p} type="Pet" />)}</div></section>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8"><section><h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2"><Sword size={18} className="text-pink-400"/> Elixir Troops</h3><div className="grid grid-cols-2 md:grid-cols-3 gap-2">{elixirTroops.map(t => <UnitCard key={t.name} unit={t} type="Elixir Troop" />)}</div></section><section><h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2"><Zap size={18} className="text-indigo-400"/> Dark Troops</h3><div className="grid grid-cols-2 md:grid-cols-3 gap-2">{darkTroops.map(t => <UnitCard key={t.name} unit={t} type="Dark Troop" />)}</div></section></div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8"><section><h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2"><Clock size={18} className="text-blue-400"/> Spells</h3><div className="grid grid-cols-2 md:grid-cols-3 gap-2">{elixirSpells.map(s => <UnitCard key={s.name} unit={s} type="Elixir Spell" />)}{darkSpells.map(s => <UnitCard key={s.name} unit={s} type="Dark Spell" />)}</div></section>{siegeMachines.length > 0 && (<section><h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2"><Home size={18} className="text-yellow-600"/> Sieges</h3><div className="grid grid-cols-2 md:grid-cols-3 gap-2">{siegeMachines.map(s => <UnitCard key={s.name} unit={s} type="Siege Machine" />)}</div></section>)}</div>
+
+      {/* --- SHARE MODAL --- */}
+      {showShareModal && <ShareProfileModal player={player} onClose={() => setShowShareModal(false)} />}
     </div>
   );
 }

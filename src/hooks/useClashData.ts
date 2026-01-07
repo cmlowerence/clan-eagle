@@ -11,13 +11,18 @@ interface ProxyResponse<T> {
 
 export function useClashData<T>(key: string, endpoint: string) {
   const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(false); // Default to false so we don't show loader for empty states
+  
+  // FIX: Initialize loading to TRUE if we have a valid endpoint. 
+  // This prevents the "Not Found" flash on initial render.
+  const isValidEndpoint = endpoint && !endpoint.includes('undefined') && !endpoint.includes('null') && endpoint !== '';
+  const [loading, setLoading] = useState(!!isValidEndpoint);
+  
   const [isCached, setIsCached] = useState(false);
   const [timestamp, setTimestamp] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadData = useCallback(async (forceUpdate = false) => {
-    // STOP if the endpoint is invalid (prevents the Compare Page error)
+    // Stop if endpoint is invalid
     if (!endpoint || endpoint.endsWith('/') || endpoint.includes('undefined') || endpoint.includes('null')) {
         setLoading(false);
         return;
@@ -28,18 +33,21 @@ export function useClashData<T>(key: string, endpoint: string) {
     try {
       const storageKey = `clash_cache_${key}`;
       
+      // 1. Check LocalStorage (Fast Path)
       if (!forceUpdate) {
         const cachedRaw = localStorage.getItem(storageKey);
         if (cachedRaw) {
           try {
             const parsed = JSON.parse(cachedRaw);
             const ageMinutes = (Date.now() - parsed.timestamp) / 1000 / 60;
+            
+            // Valid for 12 Hours
             if (ageMinutes < 720) {
                 setData(parsed.data as T);
                 setIsCached(true);
                 setTimestamp(parsed.timestamp);
                 setLoading(false);
-                return;
+                return; // Stop here, don't fetch
             }
           } catch (e) {
             localStorage.removeItem(storageKey);
@@ -47,6 +55,7 @@ export function useClashData<T>(key: string, endpoint: string) {
         }
       }
 
+      // 2. Fetch from Proxy (Slow Path)
       const proxyUrl = `/api/proxy?endpoint=${encodeURIComponent(endpoint)}`;
       const res = await fetch(proxyUrl);
       
@@ -59,6 +68,7 @@ export function useClashData<T>(key: string, endpoint: string) {
       const actualData = json.data;
       const newTimestamp = Date.now();
       
+      // 3. Save to LocalStorage
       localStorage.setItem(storageKey, JSON.stringify({
         data: actualData,
         timestamp: newTimestamp
@@ -71,6 +81,7 @@ export function useClashData<T>(key: string, endpoint: string) {
     } catch (err: any) {
       console.error(`[useClashData] Failed:`, err);
       setError(err.message || "Failed to fetch data");
+      setData(null); // Ensure data is null on error so "Not Found" shows correctly
     } finally {
       setLoading(false);
     }

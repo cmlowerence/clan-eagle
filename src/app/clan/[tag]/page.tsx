@@ -1,12 +1,13 @@
-'use client';
+ 'use client';
 
 import { useClashData } from "@/hooks/useClashData";
 import { timeAgo, saveToHistory } from "@/lib/utils";
-import { Users, Swords, Trophy, Map, RefreshCw, Clock, ShieldAlert, Globe, MapPin, Target, BookOpen, Crown } from "lucide-react";
+import { Users, Swords, Trophy, Map, RefreshCw, Clock, ShieldAlert, Globe, MapPin, Target, BookOpen, Crown, Coins } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import SkeletonLoader from "@/components/SkeletonLoader";
 import WarMap, { WarData } from "@/components/WarMap";
+import CapitalRaidSection, { RaidSeason } from "@/components/CapitalRaidSection"; // <--- IMPORT
 
 // --- Interfaces ---
 interface ClanMember {
@@ -47,14 +48,22 @@ interface CWLData {
   clans: { tag: string; name: string; badgeUrls: { small: string } }[];
   rounds: any[];
 }
+// Response wrapper for raid seasons
+interface RaidSeasonsResponse {
+  items: RaidSeason[];
+}
 
 export default function ClanPage({ params }: { params: { tag: string } }) {
   const tag = decodeURIComponent(params.tag);
-  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'war' | 'cwl'>('overview');
+  // ADDED 'raids' to state
+  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'war' | 'raids' | 'cwl'>('overview');
 
   const { data: clan, loading: clanLoading, isCached, timestamp, refresh: refreshClan } = useClashData<ClanData>(`clan_${tag}`, `/clans/${tag}`);
   const { data: cwl, loading: cwlLoading, refresh: refreshCWL } = useClashData<CWLData>(`cwl_${tag}`, `/clans/${tag}/currentwar/leaguegroup`);
   const { data: warData, loading: warLoading, refresh: refreshWar } = useClashData<WarData>(`war_${tag}`, `/clans/${tag}/currentwar`);
+  
+  // NEW: Fetch Raid Seasons
+  const { data: raidData, loading: raidLoading, refresh: refreshRaids } = useClashData<RaidSeasonsResponse>(`raids_${tag}`, `/clans/${tag}/capitalraidseasons?limit=10`);
 
   // --- EAGLE EYE: Save to History ---
   useEffect(() => {
@@ -67,6 +76,7 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
     refreshClan();
     if(activeTab === 'cwl') refreshCWL();
     if(activeTab === 'war') refreshWar();
+    if(activeTab === 'raids') refreshRaids(); // Refresh raids
   };
 
   if (clanLoading) return <SkeletonLoader />;
@@ -134,16 +144,18 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
 
       {/* --- TABS --- */}
       <div className="flex gap-2 md:gap-4 border-b border-skin-primary/20 pb-1 overflow-x-auto">
-        {['overview', 'members', 'war', 'cwl'].map(tab => (
+        {/* ADDED 'raids' here */}
+        {['overview', 'members', 'war', 'raids', 'cwl'].map(tab => (
            <button 
              key={tab}
              onClick={() => setActiveTab(tab as any)} 
              className={`pb-2 px-4 font-clash text-sm tracking-wide transition-colors uppercase whitespace-nowrap 
                ${activeTab === tab ? 'text-skin-secondary border-b-2 border-skin-secondary' : 'text-skin-muted hover:text-skin-text'}
                ${tab === 'war' && activeTab !== 'war' ? 'text-red-400 hover:text-red-300' : ''}
+               ${tab === 'raids' && activeTab !== 'raids' ? 'text-orange-400 hover:text-orange-300' : ''}
              `}
            >
-             {tab === 'members' ? `Members (${clan.members})` : tab === 'war' ? 'Current War' : tab}
+             {tab === 'members' ? `Members (${clan.members})` : tab === 'war' ? 'Current War' : tab === 'raids' ? 'Raid Weekend' : tab}
            </button>
         ))}
       </div>
@@ -237,6 +249,15 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
             {!warLoading && !warData && <div className="text-center py-10 opacity-50 font-clash">No active war data found.<br/><span className="text-xs font-sans text-skin-muted">(Or Clan War League is active)</span></div>}
             {!warLoading && warData && <WarMap data={warData} />}
          </div>
+      )}
+
+      {/* --- NEW RAIDS TAB --- */}
+      {activeTab === 'raids' && (
+        <div className="min-h-[300px]">
+          {raidLoading && <SkeletonLoader />}
+          {!raidLoading && !raidData && <div className="text-center py-10 opacity-50 font-clash">No Raid Seasons found.</div>}
+          {!raidLoading && raidData && <CapitalRaidSection seasons={raidData.items} />}
+        </div>
       )}
 
       {/* --- CWL TAB --- */}
