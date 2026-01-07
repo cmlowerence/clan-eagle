@@ -1,4 +1,4 @@
-'use client';
+ 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 
@@ -11,34 +11,35 @@ interface ProxyResponse<T> {
 
 export function useClashData<T>(key: string, endpoint: string) {
   const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Default to false so we don't show loader for empty states
   const [isCached, setIsCached] = useState(false);
-  const [timestamp, setTimestamp] = useState<number | null>(null); // Changed to number
+  const [timestamp, setTimestamp] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadData = useCallback(async (forceUpdate = false) => {
+    // STOP if the endpoint is invalid (prevents the Compare Page error)
+    if (!endpoint || endpoint.endsWith('/') || endpoint.includes('undefined') || endpoint.includes('null')) {
+        setLoading(false);
+        return;
+    }
+
     setLoading(true);
     setError(null);
     try {
       const storageKey = `clash_cache_${key}`;
       
-      // 1. Check LocalStorage
       if (!forceUpdate) {
         const cachedRaw = localStorage.getItem(storageKey);
         if (cachedRaw) {
           try {
             const parsed = JSON.parse(cachedRaw);
             const ageMinutes = (Date.now() - parsed.timestamp) / 1000 / 60;
-            
-            // CACHE LOGIC: Valid for 12 Hours (720 minutes)
             if (ageMinutes < 720) {
                 setData(parsed.data as T);
                 setIsCached(true);
                 setTimestamp(parsed.timestamp);
                 setLoading(false);
                 return;
-            } else {
-              console.log(`[Cache] Expired (${Math.floor(ageMinutes)} mins old). Refetching...`);
             }
           } catch (e) {
             localStorage.removeItem(storageKey);
@@ -46,7 +47,6 @@ export function useClashData<T>(key: string, endpoint: string) {
         }
       }
 
-      // 2. Fetch from Proxy
       const proxyUrl = `/api/proxy?endpoint=${encodeURIComponent(endpoint)}`;
       const res = await fetch(proxyUrl);
       
@@ -57,9 +57,8 @@ export function useClashData<T>(key: string, endpoint: string) {
       if (json.error) throw new Error(json.error);
 
       const actualData = json.data;
-
-      // 3. Save to LocalStorage
       const newTimestamp = Date.now();
+      
       localStorage.setItem(storageKey, JSON.stringify({
         data: actualData,
         timestamp: newTimestamp
@@ -83,4 +82,3 @@ export function useClashData<T>(key: string, endpoint: string) {
 
   return { data, loading, isCached, timestamp, error, refresh: () => loadData(true) };
 }
-
