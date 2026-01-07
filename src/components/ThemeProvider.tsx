@@ -11,13 +11,13 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<ThemeType>('pekka');
+  // SET DEFAULT THEME TO 'classic'
+  const [theme, setTheme] = useState<ThemeType>('classic'); 
 
   useEffect(() => {
     const root = document.documentElement;
     const colors = THEMES[theme].colors;
 
-    // Inject CSS variables into the root element
     root.style.setProperty('--color-primary', colors.primary);
     root.style.setProperty('--color-secondary', colors.secondary);
     root.style.setProperty('--color-bg', colors.bg);
@@ -38,3 +38,4 @@ export const useTheme = () => {
   if (!context) throw new Error('useTheme must be used within a ThemeProvider');
   return context;
 };
+
