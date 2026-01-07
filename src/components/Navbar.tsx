@@ -2,75 +2,103 @@
 
 import { useTheme } from "./ThemeProvider";
 import { THEMES, ThemeType } from "@/lib/themes";
-import { Search, Zap, Skull, Flame, Shield } from "lucide-react";
+import { Search, Menu, ChevronDown, X } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function Navbar() {
   const { theme, setTheme } = useTheme();
   const [searchTag, setSearchTag] = useState("");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchTag) return;
-    // Basic validation: add # if missing
-    const tag = searchTag.startsWith('#') ? searchTag : `#${searchTag}`;
-    // Assume user is searching for a clan for now
-    router.push(`/clan/${encodeURIComponent(tag)}`);
+    const tag = searchTag.trim().replace('#', '');
+    router.push(`/clan/${encodeURIComponent('#' + tag)}`);
+    setSearchTag("");
   };
 
-  const getIcon = (t: ThemeType) => {
-    switch (t) {
-      case 'pekka': return <Shield size={18} />;
-      case 'edrag': return <Zap size={18} />;
-      case 'hog': return <Skull size={18} />; // Best approximation for Hog
-      case 'lava': return <Flame size={18} />;
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
     }
-  };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const activeTheme = THEMES[theme];
 
   return (
-    <nav className="border-b border-skin-primary/20 bg-skin-surface/50 backdrop-blur-md sticky top-0 z-50">
+    <nav className="border-b border-skin-primary/30 bg-skin-surface/90 backdrop-blur-md sticky top-0 z-50 shadow-md">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         
-        {/* Logo */}
-        <Link href="/" className="text-2xl font-black tracking-tighter text-skin-primary hover:text-skin-secondary transition-colors">
-          CLASH<span className="text-skin-secondary">THEME</span>
+        {/* LOGO */}
+        <Link href="/" className="flex items-center gap-2 group">
+          <h1 className="text-2xl md:text-3xl font-clash text-skin-text drop-shadow-md group-hover:scale-105 transition-transform">
+            CLAN <span className="text-skin-primary">EAGLE</span>
+          </h1>
         </Link>
 
-        {/* Search Bar - Hidden on mobile, visible on md+ */}
-        <form onSubmit={handleSearch} className="hidden md:flex relative w-64">
+        {/* DESKTOP SEARCH */}
+        <form onSubmit={handleSearch} className="hidden md:flex relative w-80 mx-4">
           <input 
             type="text" 
-            placeholder="#CLANTAG"
+            placeholder="#CLAN TAG"
             value={searchTag}
             onChange={(e) => setSearchTag(e.target.value)}
-            className="w-full bg-skin-bg border border-skin-primary/30 rounded-full py-1 px-4 text-sm focus:outline-none focus:border-skin-secondary text-skin-text"
+            className="w-full bg-skin-bg border-2 border-skin-primary/30 rounded-full py-1.5 px-4 text-sm focus:outline-none focus:border-skin-primary text-skin-text font-bold placeholder:font-normal"
           />
-          <button type="submit" className="absolute right-3 top-1.5 text-skin-muted hover:text-skin-secondary">
-            <Search size={16} />
+          <button type="submit" className="absolute right-2 top-1.5 text-skin-primary hover:text-skin-secondary">
+            <Search size={20} />
           </button>
         </form>
 
-        {/* Theme Switcher */}
-        <div className="flex gap-2">
-          {(Object.keys(THEMES) as ThemeType[]).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTheme(t)}
-              className={`p-2 rounded-full transition-all duration-300 ${
-                theme === t 
-                  ? 'bg-skin-primary text-white scale-110 shadow-[0_0_15px_rgba(0,0,0,0.3)] shadow-skin-primary' 
-                  : 'bg-skin-bg text-skin-muted hover:text-skin-text'
-              }`}
-              title={THEMES[t].name}
-            >
-              {getIcon(t)}
-            </button>
-          ))}
+        {/* THEME SELECTOR (DROPDOWN) */}
+        <div className="relative" ref={dropdownRef}>
+          <button 
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="flex items-center gap-2 bg-skin-bg border border-skin-primary/30 rounded-full px-3 py-1.5 hover:bg-skin-primary/10 transition-colors"
+          >
+            <div className="w-6 h-6 rounded-full overflow-hidden border border-skin-muted/50">
+               <img src={`/assets/icons/${activeTheme.icon}`} alt="Theme" className="w-full h-full object-cover" />
+            </div>
+            <span className="hidden md:block text-xs font-bold uppercase text-skin-text">{activeTheme.name}</span>
+            <ChevronDown size={14} className={`text-skin-muted transition-transform ${isMenuOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {/* DROPDOWN MENU */}
+          {isMenuOpen && (
+            <div className="absolute right-0 top-full mt-2 w-56 bg-skin-surface border border-skin-primary/20 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2">
+              <div className="p-2 grid gap-1">
+                {(Object.keys(THEMES) as ThemeType[]).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => { setTheme(t); setIsMenuOpen(false); }}
+                    className={`flex items-center gap-3 p-2 rounded-lg text-left transition-colors ${
+                      theme === t ? 'bg-skin-primary/20 border border-skin-primary/30' : 'hover:bg-skin-bg'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-full overflow-hidden border border-skin-muted/30 bg-black/20 shrink-0">
+                      <img src={`/assets/icons/${THEMES[t].icon}`} alt={THEMES[t].name} className="w-full h-full object-contain" />
+                    </div>
+                    <div>
+                       <p className={`text-xs font-bold uppercase ${theme === t ? 'text-skin-primary' : 'text-skin-text'}`}>{THEMES[t].name}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </nav>
   );
 }
+
