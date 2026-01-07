@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
+// Define the expected structure from your backend
 interface ProxyResponse<T> {
   cached: boolean;
   data: T;
   error?: string;
-  debugUrl?: string; // New debug field
+  debugUrl?: string;
 }
 
 export function useClashData<T>(key: string, endpoint: string) {
@@ -22,17 +23,19 @@ export function useClashData<T>(key: string, endpoint: string) {
     try {
       const storageKey = `clash_cache_${key}`;
       
-      // 1. Check LocalStorage (skip if forcing update)
+      // 1. Check LocalStorage (if not forcing update)
       if (!forceUpdate) {
         const cachedRaw = localStorage.getItem(storageKey);
         if (cachedRaw) {
           try {
-            const { data: cachedData, timestamp } = JSON.parse(cachedRaw);
-            // Cache valid for 10 minutes
-            if ((Date.now() - timestamp) / 1000 / 60 < 10) {
-                setData(cachedData);
+            const parsed = JSON.parse(cachedRaw);
+            const age = (Date.now() - parsed.timestamp) / 1000 / 60; // Age in minutes
+            
+            // Valid for 10 minutes
+            if (age < 10) {
+                setData(parsed.data as T);
                 setIsCached(true);
-                setLastUpdated(new Date(timestamp).toLocaleTimeString());
+                setLastUpdated(new Date(parsed.timestamp).toLocaleTimeString());
                 setLoading(false);
                 return;
             }
@@ -43,38 +46,34 @@ export function useClashData<T>(key: string, endpoint: string) {
       }
 
       // 2. Fetch from Proxy
-      // Encode the endpoint to ensure special chars like # travel safely to our proxy
       const proxyUrl = `/api/proxy?endpoint=${encodeURIComponent(endpoint)}`;
       console.log(`[API] Fetching: ${proxyUrl}`);
       
       const res = await fetch(proxyUrl);
       
-      // 3. Handle Errors with Debug Info
+      // Handle HTTP Errors
       if (!res.ok) {
         const contentType = res.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
-           // It's a JSON error from our Proxy (Good, we can debug)
            const errJson = await res.json();
-           console.error("[Proxy Error Debug]", errJson);
-           throw new Error(errJson.error + (errJson.debugUrl ? ` (Tried: ${errJson.debugUrl})` : ""));
+           throw new Error(errJson.error || "Proxy Error");
         } else {
-           // It's an HTML error (likely 404 Not Found)
-           // This means src/app/api/proxy/route.ts DOES NOT EXIST or is in the wrong place.
-           throw new Error("Proxy Route Not Found. Check file structure: src/app/api/proxy/route.ts");
+           throw new Error(`API Route 404: The file src/app/api/proxy/route.ts is missing or in the wrong folder.`);
         }
       }
 
-      const json: ProxyResponse<T> = await res.json();
+      // 3. Parse and Cast Type
+      // We explicitly tell TS this is a ProxyResponse<T>
+      const json = await res.json() as ProxyResponse<T>;
 
       if (json.error) {
         throw new Error(json.error);
       }
 
-      // 4. Save Data
-      // Our proxy unwraps the backend response, so json is the actual data object or { data: ... }
-      // Based on your backend, it returns { cached: bool, data: ... }. We want .data
-      const actualData = json.data || json; 
+      // 4. Extract 'data' from the wrapper { cached: ..., data: ... }
+      const actualData = json.data;
 
+      // 5. Save to LocalStorage
       localStorage.setItem(storageKey, JSON.stringify({
         data: actualData,
         timestamp: Date.now()
