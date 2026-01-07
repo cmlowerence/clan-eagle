@@ -1,4 +1,4 @@
- 'use client';
+'use client';
 
 import { useTheme } from "@/components/ThemeProvider";
 import { Search, ArrowRight, Shield, Zap, Skull, Flame, User, Users, Clock, Trash2 } from "lucide-react";
@@ -31,26 +31,16 @@ export default function Home() {
     localStorage.removeItem('clash_search_history');
     setRecent([]);
   };
-
-  const getThemeContent = () => {
-    switch(theme) {
-      case 'classic': return { desc: "Gold & Stone.", icon: <Shield size={32} /> };
-      case 'baby': return { desc: "Green & Orange.", icon: <Shield size={32} /> };
-      case 'pekka': return { desc: "Neon Energy.", icon: <Shield size={32} /> };
-      case 'edrag': return { desc: "Electric Storm.", icon: <Zap size={32} /> };
-      case 'hog': return { desc: "Hammers & Mud.", icon: <Skull size={32} /> };
-      case 'lava': return { desc: "Molten Rock.", icon: <Flame size={32} /> };
-      default: return { desc: "Select a theme.", icon: <Shield size={32} /> };
-    }
-  };
   
   // Categorize History
   const recentClans = recent.filter(r => r.type === 'clan');
   const recentPlayers = recent.filter(r => r.type === 'player');
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] text-center gap-8 px-4 pb-12">
-      <div className="space-y-4 max-w-2xl animate-in fade-in zoom-in duration-700 mt-10 md:mt-0">
+    // FIX: Changed justify-center to justify-start on mobile + added pt-24
+    <div className="flex flex-col items-center justify-start md:justify-center min-h-[80vh] text-center gap-8 px-4 pb-12 pt-24 md:pt-0">
+      
+      <div className="space-y-4 max-w-2xl animate-in fade-in zoom-in duration-700 mt-4 md:mt-0">
         <h1 className="text-6xl md:text-9xl font-clash text-transparent bg-clip-text bg-gradient-to-b from-skin-primary to-skin-secondary drop-shadow-lg stroke-black" style={{ WebkitTextStroke: '2px black' }}>
           CLAN<br className="md:hidden" /><span className="text-skin-text">EAGLE</span>
         </h1>
