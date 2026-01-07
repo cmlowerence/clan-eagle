@@ -1,21 +1,28 @@
-import type { Metadata } from "next";
-import { Inter, Luckiest_Guy } from "next/font/google"; // Import the Clash-style font
+ import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
-import { ThemeProvider } from "@/components/ThemeProvider";
+import ThemeProvider from "@/components/ThemeProvider";
 import Navbar from "@/components/Navbar";
-import Eruda from "@/components/Eruda";
+import FaviconManager from "@/components/FaviconManager"; // <--- Import
 
 const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
-// Initialize the Clash Font
-const clashFont = Luckiest_Guy({ 
-  weight: "400", 
-  subsets: ["latin"],
-  variable: '--font-clash' 
+
+// Load Luckiest Guy (Clash Font)
+const clashFont = localFont({
+  src: [
+    {
+      path: '../../public/fonts/LuckiestGuy-Regular.ttf', // Ensure you have this font or use Google Fonts link in CSS
+      weight: '400',
+      style: 'normal',
+    },
+  ],
+  variable: '--font-clash',
 });
 
 export const metadata: Metadata = {
-  title: "Clash Troop Themes",
-  description: "Dynamic Themed Clash of Clans Tracker",
+  title: "Clan Eagle",
+  description: "Clash of Clans Stats & Tracker",
 };
 
 export default function RootLayout({
@@ -25,18 +32,28 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${clashFont.variable} font-sans`}>
+      <body className={`${inter.variable} ${clashFont.variable} bg-skin-bg text-skin-text transition-colors duration-300 min-h-screen relative`}>
+        
+        {/* TEXTURE OVERLAY (Fixes "Empty" feeling) */}
+        <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>
+        
         <ThemeProvider>
-          <div className="min-h-screen bg-skin-bg text-skin-text transition-colors duration-500">
+          <FaviconManager /> {/* <--- Random Favicon */}
+          <div className="relative z-10 flex flex-col min-h-screen">
             <Navbar />
-            <main className="container mx-auto px-2 md:px-4 py-4 md:py-8">
+            <main className="container mx-auto px-4 py-6 flex-1">
               {children}
             </main>
+            
+            {/* Footer */}
+            <footer className="border-t border-skin-primary/10 py-8 text-center mt-10">
+              <p className="text-skin-muted text-xs font-mono">
+                Clan Eagle &copy; 2026. Not affiliated with Supercell.
+              </p>
+            </footer>
           </div>
         </ThemeProvider>
-        <Eruda />
       </body>
     </html>
   );
 }
-
