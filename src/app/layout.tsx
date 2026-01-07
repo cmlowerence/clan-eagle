@@ -1,22 +1,20 @@
- import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import localFont from "next/font/local";
+import type { Metadata } from "next";
+import { Inter, Luckiest_Guy } from "next/font/google"; // <--- Import from google
 import "./globals.css";
 import ThemeProvider from "@/components/ThemeProvider";
 import Navbar from "@/components/Navbar";
-import FaviconManager from "@/components/FaviconManager"; // <--- Import
+import FaviconManager from "@/components/FaviconManager";
 
-const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
+// 1. Setup Inter (Standard Text)
+const inter = Inter({ 
+  subsets: ["latin"], 
+  variable: '--font-inter' 
+});
 
-// Load Luckiest Guy (Clash Font)
-const clashFont = localFont({
-  src: [
-    {
-      path: '../../public/fonts/LuckiestGuy-Regular.ttf', // Ensure you have this font or use Google Fonts link in CSS
-      weight: '400',
-      style: 'normal',
-    },
-  ],
+
+const clashFont = Luckiest_Guy({
+  subsets: ["latin"],
+  weight: "400",
   variable: '--font-clash',
 });
 
@@ -34,11 +32,11 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} ${clashFont.variable} bg-skin-bg text-skin-text transition-colors duration-300 min-h-screen relative`}>
         
-        {/* TEXTURE OVERLAY (Fixes "Empty" feeling) */}
+        {/* TEXTURE OVERLAY */}
         <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>
         
         <ThemeProvider>
-          <FaviconManager /> {/* <--- Random Favicon */}
+          <FaviconManager />
           <div className="relative z-10 flex flex-col min-h-screen">
             <Navbar />
             <main className="container mx-auto px-4 py-6 flex-1">
