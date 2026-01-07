@@ -1,7 +1,7 @@
 'use client';
 
 import { useTheme } from "@/components/ThemeProvider";
-import { Search, ArrowRight } from "lucide-react";
+import { Search, ArrowRight, Shield, Zap, Skull, Flame } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -13,65 +13,83 @@ export default function Home() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if(tag) {
-      const cleanTag = tag.startsWith('#') ? tag : `#${tag}`;
-      router.push(`/clan/${encodeURIComponent(cleanTag)}`);
+      // Basic cleanup: remove # if user typed it, then re-add to ensure consistency
+      const cleanTag = tag.trim().toUpperCase().replace('#', '');
+      router.push(`/clan/${encodeURIComponent('#' + cleanTag)}`);
     }
   }
 
-  // Content changes based on theme for the showcase
-  const getThemeDescription = () => {
+  // Content changes based on theme
+  const getThemeContent = () => {
     switch(theme) {
-      case 'pekka': return "Heavy armor, devastating damage. The P.E.K.K.A theme brings a futuristic, metallic aesthetic to your analytics.";
-      case 'edrag': return "Chain lighting destruction. The Electro Dragon theme surges with energy and storms.";
-      case 'hog': return "Did somebody say Hog Rider? Jump over walls with this earthy, vibrant, and fast-paced theme.";
-      case 'lava': return "Air superiority. The Lava Hound theme burns with magma and obsidian intensity.";
+      case 'classic': return { desc: "The legendary look. Stone, Gold, and Elixir.", icon: <Shield size={32} /> };
+      case 'pekka': return { desc: "Futuristic armor and neon energy.", icon: <Shield size={32} /> };
+      case 'edrag': return { desc: "Chain lightning destruction.", icon: <Zap size={32} /> };
+      case 'hog': return { desc: "Fast-paced action and hammers.", icon: <Skull size={32} /> };
+      case 'lava': return { desc: "Air superiority and molten rock.", icon: <Flame size={32} /> };
+      default: return { desc: "Select a theme to begin.", icon: <Shield size={32} /> };
     }
   };
 
+  const themeData = getThemeContent();
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] text-center gap-12">
+    <div className="flex flex-col items-center justify-center min-h-[80vh] text-center gap-8 md:gap-12 px-4">
       
       {/* Hero Section */}
-      <div className="space-y-6 max-w-2xl animate-in fade-in zoom-in duration-700">
-        <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-skin-primary to-skin-secondary drop-shadow-sm">
+      <div className="space-y-4 max-w-2xl animate-in fade-in zoom-in duration-700 mt-10 md:mt-0">
+        <h1 className="text-6xl md:text-9xl font-clash text-transparent bg-clip-text bg-gradient-to-b from-skin-primary to-skin-secondary drop-shadow-lg stroke-black" style={{ WebkitTextStroke: '2px black' }}>
           CLASH
+          <br className="md:hidden" />
+          <span className="text-skin-text">THEME</span>
         </h1>
-        <h2 className="text-2xl md:text-3xl font-bold text-skin-text">
-          Master Your Clan with the <span className="text-skin-secondary border-b-4 border-skin-primary">{theme.toUpperCase()}</span> Engine
+        
+        <h2 className="text-lg md:text-2xl font-bold text-skin-text font-clash tracking-wider uppercase">
+          Profile & Clan Tracker
         </h2>
-        <p className="text-skin-muted text-lg">
-          Advanced analytics, dynamic visual data, and real-time war tracking.
+        
+        <p className="text-skin-muted text-sm md:text-lg max-w-md mx-auto font-mono">
+          Enter a Clan Tag to view advanced analytics with dynamic visual themes.
         </p>
       </div>
 
       {/* Main Search */}
       <form onSubmit={handleSearch} className="w-full max-w-md relative group">
-        <div className="absolute -inset-1 bg-gradient-to-r from-skin-primary to-skin-secondary rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-1000"></div>
-        <div className="relative flex">
+        <div className="absolute -inset-1 bg-gradient-to-r from-skin-primary to-skin-secondary rounded-xl blur opacity-25 group-hover:opacity-75 transition duration-1000"></div>
+        <div className="relative flex shadow-2xl">
           <input 
             type="text" 
             value={tag}
             onChange={(e) => setTag(e.target.value)}
-            placeholder="Enter Clan Tag (e.g. #2P09...)"
-            className="w-full bg-skin-bg p-4 rounded-l-lg border border-r-0 border-skin-primary/30 focus:outline-none focus:border-skin-secondary text-skin-text placeholder:text-skin-muted/50"
+            placeholder="#CLAN TAG"
+            className="w-full bg-skin-bg p-4 rounded-l-xl border-2 border-r-0 border-skin-primary/30 focus:outline-none focus:border-skin-primary text-skin-text placeholder:text-skin-muted/50 font-black uppercase tracking-widest"
           />
-          <button type="submit" className="bg-skin-primary text-white px-8 rounded-r-lg font-bold hover:bg-skin-secondary transition-colors flex items-center gap-2">
-            SEARCH <ArrowRight size={20} />
+          <button type="submit" className="bg-skin-primary text-white px-6 md:px-8 rounded-r-xl font-clash text-xl hover:bg-skin-secondary transition-colors flex items-center gap-2 border-2 border-l-0 border-skin-primary">
+            GO <ArrowRight size={24} />
           </button>
         </div>
+        <p className="text-xs text-skin-muted mt-3 font-mono opacity-60">Try: #2PCYURQLG</p>
       </form>
 
-      {/* Troop Showcase Card */}
-      <div className="mt-12 p-8 border border-skin-primary/20 bg-skin-surface/30 rounded-2xl max-w-3xl backdrop-blur-sm">
-        <h3 className="text-xl font-bold text-skin-primary mb-2">Active Theme: {theme.toUpperCase()}</h3>
-        <p className="text-skin-muted">{getThemeDescription()}</p>
-        <div className="mt-6 grid grid-cols-3 gap-4">
-            <div className="h-2 rounded bg-skin-primary"></div>
-            <div className="h-2 rounded bg-skin-secondary"></div>
-            <div className="h-2 rounded bg-skin-bg border border-skin-muted"></div>
+      {/* Theme Showcase Card */}
+      <div className="mt-8 p-6 border border-skin-primary/20 bg-skin-surface/30 rounded-2xl max-w-lg backdrop-blur-sm relative overflow-hidden group hover:border-skin-primary/50 transition-colors">
+        <div className="absolute top-0 right-0 p-4 opacity-10 text-skin-primary group-hover:scale-110 transition-transform duration-500">
+           {themeData.icon}
+        </div>
+        <div className="relative z-10 text-left">
+           <h3 className="text-xl font-clash text-skin-primary mb-1 uppercase tracking-wide">Active Theme: <span className="text-skin-text">{theme}</span></h3>
+           <p className="text-skin-muted text-sm">{themeData.desc}</p>
+        </div>
+        
+        {/* Color Swatches */}
+        <div className="mt-4 flex gap-2">
+            <div className="h-3 w-12 rounded bg-skin-primary shadow-sm"></div>
+            <div className="h-3 w-8 rounded bg-skin-secondary shadow-sm"></div>
+            <div className="h-3 w-4 rounded bg-skin-bg border border-skin-muted/50 shadow-sm"></div>
         </div>
       </div>
 
     </div>
   );
 }
+
