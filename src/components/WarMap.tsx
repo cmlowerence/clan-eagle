@@ -1,9 +1,9 @@
-'use client';
+ 'use client';
 
-import { Swords, Star, Shield, Skull } from "lucide-react";
+import { Swords, Star, Shield, Skull, ArrowRight } from "lucide-react";
 
-// New interfaces specific to War Data
-interface WarMember {
+// 1. ADD 'export' TO THESE INTERFACES
+export interface WarMember {
   tag: string;
   name: string;
   mapPosition: number;
@@ -18,7 +18,7 @@ interface WarMember {
   }[];
 }
 
-interface WarData {
+export interface WarData {
   state: string;
   teamSize: number;
   clan: {
@@ -103,7 +103,6 @@ export default function WarMap({ data }: { data: WarData }) {
                 {/* LEFT: Our Member Base */}
                 <div className={`flex items-center gap-2 p-2 rounded-lg border transition-all ${isThreeStarred ? 'bg-red-900/20 border-red-500/30 opacity-70' : 'bg-skin-surface border-skin-primary/20 group-hover:border-skin-primary'}`}>
                    <div className="relative">
-                     {/* TH Icon Placeholder - Replace with real images later if you have them */}
                      <div className="w-8 h-8 bg-skin-bg rounded flex items-center justify-center border border-skin-primary/30 font-black text-xs text-skin-primary">
                        TH{member.townhallLevel}
                      </div>
@@ -148,6 +147,3 @@ export default function WarMap({ data }: { data: WarData }) {
     </div>
   );
 }
-
-// Need ArrowRight icon for the attack line visualization
-import { ArrowRight } from "lucide-react";
