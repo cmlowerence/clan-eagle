@@ -1,10 +1,10 @@
- 'use client';
+'use client';
 
 import { useClashData } from "@/hooks/useClashData";
-import { timeAgo } from "@/lib/utils";
-import { Users, Swords, Trophy, Map, RefreshCw, Clock, ShieldAlert, Globe } from "lucide-react";
+import { timeAgo, saveToHistory } from "@/lib/utils";
+import { Users, Swords, Trophy, Map, RefreshCw, Clock, ShieldAlert, Globe, MapPin, Target, BookOpen, Crown } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SkeletonLoader from "@/components/SkeletonLoader";
 import WarMap, { WarData } from "@/components/WarMap";
 
@@ -35,7 +35,7 @@ interface ClanData {
   isWarLogPublic: boolean;
   location?: { name: string };
   chatLanguage?: { name: string };
-  badgeUrls: { large: string };
+  badgeUrls: { large: string; medium: string; small: string };
   memberList: ClanMember[];
   labels: { name: string; iconUrls: { small: string } }[];
   clanCapital: { capitalHallLevel: number; districts: any[] };
@@ -56,8 +56,12 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
   const { data: cwl, loading: cwlLoading, refresh: refreshCWL } = useClashData<CWLData>(`cwl_${tag}`, `/clans/${tag}/currentwar/leaguegroup`);
   const { data: warData, loading: warLoading, refresh: refreshWar } = useClashData<WarData>(`war_${tag}`, `/clans/${tag}/currentwar`);
 
-  if (clanLoading) return <SkeletonLoader />;
-  if (!clan) return <div className="p-10 text-center font-clash text-xl text-skin-muted">Clan not found.</div>;
+  // --- EAGLE EYE: Save to History ---
+  useEffect(() => {
+    if (clan) {
+      saveToHistory(clan.tag, clan.name, 'clan', clan.badgeUrls.small);
+    }
+  }, [clan]);
 
   const handleRefresh = () => {
     refreshClan();
@@ -65,45 +69,63 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
     if(activeTab === 'war') refreshWar();
   };
 
+  if (clanLoading) return <SkeletonLoader />;
+  if (!clan) return <div className="p-10 text-center font-clash text-xl text-skin-muted">Clan not found.</div>;
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       
       {/* --- HEADER --- */}
       <div className="bg-skin-surface border border-skin-primary/20 rounded-xl p-6 relative overflow-hidden shadow-lg">
-        <div className="absolute top-4 right-4 flex flex-col items-end z-10">
-          <button onClick={handleRefresh} className="flex items-center gap-2 bg-skin-primary hover:bg-skin-secondary text-white px-3 py-1.5 rounded-full text-xs font-bold transition-colors">
-            <RefreshCw size={14} className={clanLoading ? "animate-spin" : ""} />
-            {clanLoading ? "Updating..." : "Update"}
-          </button>
-          {isCached && timestamp && (
-            <span className="text-[10px] text-skin-muted mt-1 flex items-center gap-1 bg-black/20 px-2 py-0.5 rounded">
-              <Clock size={10} /> Cached {timeAgo(timestamp)}
-            </span>
-          )}
+        {/* Background Emblem Faded */}
+        <div className="absolute right-[-20px] bottom-[-20px] opacity-5 pointer-events-none">
+           <img src={clan.badgeUrls.large} className="w-64 h-64 grayscale" alt="" />
         </div>
 
-        <div className="flex flex-col md:flex-row items-center gap-6 z-0">
-          <img src={clan.badgeUrls.large} alt={clan.name} className="w-24 h-24 md:w-28 md:h-28 drop-shadow-2xl" />
+        {/* Action Bar (Refresh/Cache) */}
+        <div className="flex justify-end mb-4">
+          <div className="flex flex-col items-end gap-1">
+             <button onClick={handleRefresh} className="flex items-center gap-2 bg-skin-primary hover:bg-skin-secondary text-white px-3 py-1.5 rounded-full text-xs font-bold transition-colors shadow-lg">
+               <RefreshCw size={14} className={clanLoading ? "animate-spin" : ""} />
+               {clanLoading ? "Updating..." : "Update"}
+             </button>
+             {isCached && timestamp && (
+               <span className="text-[10px] text-skin-muted bg-black/40 px-2 py-0.5 rounded flex items-center gap-1 backdrop-blur-sm">
+                 <Clock size={10} /> {timeAgo(timestamp)}
+               </span>
+             )}
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row items-center gap-6 z-10 relative">
+          {/* Badge */}
+          <div className="relative">
+             <div className="absolute inset-0 bg-skin-primary/20 blur-xl rounded-full"></div>
+             <img src={clan.badgeUrls.large} alt={clan.name} className="w-24 h-24 md:w-32 md:h-32 drop-shadow-2xl relative z-10" />
+          </div>
+
+          {/* Info */}
           <div className="text-center md:text-left flex-1">
             <h1 className="text-3xl md:text-5xl font-clash text-skin-text tracking-wide uppercase drop-shadow-sm">{clan.name}</h1>
             <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-2">
                <span className="bg-skin-bg px-2 py-1 rounded text-xs text-skin-muted border border-skin-primary/30 font-mono font-bold">{clan.tag}</span>
-               {clan.warLeague && <span className="bg-yellow-900/40 text-yellow-200 px-2 py-1 rounded text-xs border border-yellow-700 font-bold">{clan.warLeague.name}</span>}
+               {clan.warLeague && <span className="bg-yellow-900/40 text-yellow-200 px-2 py-1 rounded text-xs border border-yellow-700 font-bold flex items-center gap-1"><Swords size={12}/> {clan.warLeague.name}</span>}
             </div>
-            <p className="text-skin-muted mt-4 text-sm max-w-2xl italic leading-relaxed whitespace-pre-line">{clan.description}</p>
+            <p className="text-skin-muted mt-4 text-sm max-w-2xl italic leading-relaxed whitespace-pre-line border-l-2 border-skin-primary/30 pl-3 ml-auto mr-auto md:ml-0">{clan.description}</p>
           </div>
           
+          {/* Stats Grid */}
           <div className="grid grid-cols-2 gap-2 text-center w-full md:w-auto mt-4 md:mt-0">
-            <div className="bg-skin-bg p-3 rounded border border-skin-primary/10">
+            <div className="bg-skin-bg/80 p-3 rounded-lg border border-skin-primary/10 backdrop-blur-sm">
                <div className="text-[10px] text-skin-muted uppercase font-bold">Level</div><div className="text-2xl font-clash text-skin-secondary">{clan.clanLevel}</div>
             </div>
-            <div className="bg-skin-bg p-3 rounded border border-skin-primary/10">
+            <div className="bg-skin-bg/80 p-3 rounded-lg border border-skin-primary/10 backdrop-blur-sm">
                <div className="text-[10px] text-skin-muted uppercase font-bold">Points</div><div className="text-xl font-clash text-skin-text">{clan.clanPoints}</div>
             </div>
-            <div className="bg-skin-bg p-3 rounded border border-skin-primary/10">
+            <div className="bg-skin-bg/80 p-3 rounded-lg border border-skin-primary/10 backdrop-blur-sm">
                <div className="text-[10px] text-skin-muted uppercase font-bold">Wins</div><div className="text-xl font-clash text-green-400">{clan.warWins}</div>
             </div>
-            <div className="bg-skin-bg p-3 rounded border border-skin-primary/10">
+            <div className="bg-skin-bg/80 p-3 rounded-lg border border-skin-primary/10 backdrop-blur-sm">
                <div className="text-[10px] text-skin-muted uppercase font-bold">Streak</div><div className="text-xl font-clash text-orange-400">{clan.warWinStreak}</div>
             </div>
           </div>
@@ -126,25 +148,64 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
         ))}
       </div>
 
-      {/* --- CONTENT --- */}
+      {/* --- OVERVIEW TAB --- */}
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-           <div className="bg-skin-surface p-6 rounded-xl border border-skin-primary/10">
-              <h3 className="flex items-center gap-2 font-clash text-lg mb-4 text-skin-text"><ShieldAlert size={20} className="text-skin-primary"/> Settings</h3>
-              <ul className="space-y-3 text-sm">
-                <li className="flex justify-between"><span className="text-skin-muted">Type</span> <span className="font-bold">{clan.type}</span></li>
-                <li className="flex justify-between"><span className="text-skin-muted">Req. Trophies</span> <span className="font-bold">{clan.requiredTrophies}</span></li>
-                <li className="flex justify-between"><span className="text-skin-muted">War Frequency</span> <span className="font-bold">{clan.warFrequency}</span></li>
-                <li className="flex justify-between"><span className="text-skin-muted">Location</span> <span className="font-bold">{clan.location?.name || "Intl"}</span></li>
-              </ul>
+        <div className="space-y-6">
+           {/* Settings Grid */}
+           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-skin-surface p-4 rounded-xl border border-skin-primary/10 flex flex-col items-center text-center gap-2">
+                 <div className="w-8 h-8 rounded-full bg-skin-primary/10 flex items-center justify-center text-skin-primary"><Crown size={16}/></div>
+                 <div><div className="text-[10px] text-skin-muted uppercase font-bold">Type</div><div className="font-bold text-sm text-skin-text">{clan.type}</div></div>
+              </div>
+              <div className="bg-skin-surface p-4 rounded-xl border border-skin-primary/10 flex flex-col items-center text-center gap-2">
+                 <div className="w-8 h-8 rounded-full bg-skin-secondary/10 flex items-center justify-center text-skin-secondary"><Trophy size={16}/></div>
+                 <div><div className="text-[10px] text-skin-muted uppercase font-bold">Required</div><div className="font-bold text-sm text-skin-text">{clan.requiredTrophies}</div></div>
+              </div>
+              <div className="bg-skin-surface p-4 rounded-xl border border-skin-primary/10 flex flex-col items-center text-center gap-2">
+                 <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-500"><Target size={16}/></div>
+                 <div><div className="text-[10px] text-skin-muted uppercase font-bold">Frequency</div><div className="font-bold text-sm text-skin-text">{clan.warFrequency}</div></div>
+              </div>
+              <div className="bg-skin-surface p-4 rounded-xl border border-skin-primary/10 flex flex-col items-center text-center gap-2">
+                 <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500"><MapPin size={16}/></div>
+                 <div><div className="text-[10px] text-skin-muted uppercase font-bold">Location</div><div className="font-bold text-sm text-skin-text">{clan.location?.name || "Intl"}</div></div>
+              </div>
            </div>
-           <div className="bg-skin-surface p-6 rounded-xl border border-skin-primary/10">
-              <h3 className="flex items-center gap-2 font-clash text-lg mb-4 text-skin-text"><Map size={20} className="text-skin-secondary"/> Capital</h3>
-              <div className="text-center mb-4"><div className="text-3xl font-clash text-amber-500 drop-shadow-sm">{clan.clanCapitalPoints}</div><div className="text-xs text-skin-muted font-bold uppercase">Capital Points</div></div>
+
+           {/* Clan Capital Banner */}
+           <div className="bg-gradient-to-r from-orange-900/40 to-skin-surface rounded-xl border border-orange-500/20 p-6 relative overflow-hidden">
+              <div className="absolute right-0 top-0 w-1/2 h-full bg-[url('/assets/icons/capital_hall.png')] bg-contain bg-no-repeat bg-right opacity-20 grayscale"></div>
+              <div className="relative z-10 flex flex-col md:flex-row items-center gap-6">
+                 <div className="text-center md:text-left">
+                    <h3 className="flex items-center gap-2 font-clash text-2xl text-orange-400"><Map size={24}/> Clan Capital</h3>
+                    <p className="text-sm text-skin-muted">Capital Hall Level <span className="text-white font-bold">{clan.clanCapital.capitalHallLevel}</span></p>
+                 </div>
+                 
+                 <div className="bg-black/30 p-3 rounded-lg border border-orange-500/30 flex items-center gap-3">
+                    <div className="text-right">
+                       <div className="text-3xl font-clash text-orange-400 drop-shadow-sm leading-none">{clan.clanCapitalPoints}</div>
+                       <div className="text-[10px] text-skin-muted font-bold uppercase tracking-widest">Total Points</div>
+                    </div>
+                 </div>
+
+                 <div className="flex-1 flex flex-wrap justify-center md:justify-end gap-2">
+                    {clan.clanCapital.districts.slice(0, 4).map(d => (
+                       <div key={d.id} className="bg-skin-bg px-3 py-1.5 rounded text-xs border border-skin-primary/10 flex items-center gap-2">
+                          <span className="text-skin-muted">{d.name}</span>
+                          <span className="bg-orange-500/20 text-orange-400 px-1.5 rounded font-bold">{d.districtHallLevel}</span>
+                       </div>
+                    ))}
+                 </div>
+              </div>
+           </div>
+
+           {/* War Log Public Status */}
+           <div className={`p-3 rounded-lg border text-center text-sm font-bold uppercase tracking-widest ${clan.isWarLogPublic ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
+              War Log {clan.isWarLogPublic ? "Public" : "Private"}
            </div>
         </div>
       )}
 
+      {/* --- MEMBERS TAB --- */}
       {activeTab === 'members' && (
         <div className="grid gap-2">
             {clan.memberList.map((member, i) => (
@@ -169,14 +230,16 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
         </div>
       )}
 
+      {/* --- WAR TAB --- */}
       {activeTab === 'war' && (
          <div className="min-h-[300px]">
             {warLoading && <SkeletonLoader />}
-            {!warLoading && !warData && <div className="text-center py-10 opacity-50 font-clash">No active war data found.</div>}
+            {!warLoading && !warData && <div className="text-center py-10 opacity-50 font-clash">No active war data found.<br/><span className="text-xs font-sans text-skin-muted">(Or Clan War League is active)</span></div>}
             {!warLoading && warData && <WarMap data={warData} />}
          </div>
       )}
 
+      {/* --- CWL TAB --- */}
       {activeTab === 'cwl' && (
         <div className="bg-skin-surface p-6 rounded-xl border border-skin-secondary/20 min-h-[200px]">
            {!cwlLoading && !cwl && <div className="text-center py-8 opacity-50"><Globe size={32} className="mx-auto mb-2"/><p>No Active CWL</p></div>}
