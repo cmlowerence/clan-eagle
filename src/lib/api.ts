@@ -1,4 +1,4 @@
-const BASE_URL = 'https://coc-api-functional.onrender.com';
+const BASE_URL = 'https://coc-api-functional.onrender.com/api';
 
 // Interface for the backend response structure
 interface BackendResponse<T> {
