@@ -1,19 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { fetchClashAPI } from '@/lib/api'; // Re-using your existing server fetcher logic in a client context via API routes or direct call if feasible, 
-// BUT typically fetchClashAPI was server-side. 
-// We will adapt this to use a standard fetch to your proxy.
 
-// Helper to fetch directly from your proxy URL
-const fetchProxy = async (endpoint: string) => {
-  const BASE_URL = 'https://coc-api-functional.onrender.com';
-  const cleanEndpoint = endpoint.replace(/#/g, '%23');
-  const res = await fetch(`${BASE_URL}${cleanEndpoint}`);
-  if (!res.ok) throw new Error('API Error');
-  const json = await res.json();
-  return json.data; // Unwrap the { cached, data } envelope here
-};
+// Define the shape of the proxy response
+interface ProxyResponse<T> {
+  cached: boolean;
+  data: T;
+  error?: string;
+}
 
 export function useClashData<T>(key: string, endpoint: string) {
   const [data, setData] = useState<T | null>(null);
@@ -27,37 +21,64 @@ export function useClashData<T>(key: string, endpoint: string) {
     setError(null);
     try {
       const storageKey = `clash_cache_${key}`;
-      const cachedRaw = localStorage.getItem(storageKey);
       
-      // 1. Check Cache
-      if (cachedRaw && !forceUpdate) {
-        const { data: cachedData, timestamp } = JSON.parse(cachedRaw);
-        const age = (Date.now() - timestamp) / 1000 / 60; // Age in minutes
-        
-        // Cache valid for 10 minutes
-        if (age < 10) {
-            setData(cachedData);
-            setIsCached(true);
-            setLastUpdated(new Date(timestamp).toLocaleTimeString());
-            setLoading(false);
-            return;
+      // 1. Check LocalStorage Cache (if not forcing update)
+      if (!forceUpdate) {
+        const cachedRaw = localStorage.getItem(storageKey);
+        if (cachedRaw) {
+          try {
+            const { data: cachedData, timestamp } = JSON.parse(cachedRaw);
+            const age = (Date.now() - timestamp) / 1000 / 60; // Age in minutes
+            
+            // Valid for 10 minutes
+            if (age < 10) {
+                console.log(`[Cache] Hit for ${key}`);
+                setData(cachedData);
+                setIsCached(true);
+                setLastUpdated(new Date(timestamp).toLocaleTimeString());
+                setLoading(false);
+                return;
+            }
+          } catch (e) {
+            console.warn("Cache parse error", e);
+            localStorage.removeItem(storageKey);
+          }
         }
       }
 
-      // 2. Fetch Fresh
-      const freshData = await fetchProxy(endpoint);
+      // 2. Fetch from our Internal Proxy
+      console.log(`[API] Fetching fresh data for ${key}`);
       
-      // 3. Save to Cache
+      // IMPORTANT: We pass the endpoint as a query param
+      const proxyUrl = `/api/proxy?endpoint=${encodeURIComponent(endpoint)}`;
+      const res = await fetch(proxyUrl);
+      
+      if (!res.ok) {
+        throw new Error(`Request failed: ${res.status}`);
+      }
+
+      const json: ProxyResponse<T> = await res.json();
+
+      if (json.error) {
+        throw new Error(json.error);
+      }
+
+      // 3. Unwrap and Save
+      // The backend returns { cached: boolean, data: ... }
+      // We want the inner 'data'
+      const actualData = json.data;
+
       localStorage.setItem(storageKey, JSON.stringify({
-        data: freshData,
+        data: actualData,
         timestamp: Date.now()
       }));
 
-      setData(freshData);
-      setIsCached(false);
+      setData(actualData);
+      setIsCached(false); // It's fresh from the server
       setLastUpdated(new Date().toLocaleTimeString());
 
     } catch (err: any) {
+      console.error(`[useClashData] Error:`, err);
       setError(err.message || "Failed to fetch data");
     } finally {
       setLoading(false);
@@ -71,3 +92,4 @@ export function useClashData<T>(key: string, endpoint: string) {
 
   return { data, loading, isCached, lastUpdated, error, refresh: () => loadData(true) };
 }
+
