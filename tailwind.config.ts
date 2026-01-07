@@ -8,6 +8,12 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        // 'sans' defaults to Inter
+        sans: ['var(--font-inter)', 'sans-serif'],
+        // 'clash' uses our new font
+        clash: ['var(--font-clash)', 'cursive'],
+      },
       colors: {
         skin: {
           primary: 'var(--color-primary)',
