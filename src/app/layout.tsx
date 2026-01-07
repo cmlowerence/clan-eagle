@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Navbar from "@/components/Navbar";
-import Script from "next/script"; // <--- IMPORT THIS
+import Eruda from "@/components/Eruda"; // <--- 1. IMPORT THE NEW COMPONENT
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -28,20 +28,9 @@ export default function RootLayout({
             </main>
           </div>
         </ThemeProvider>
-
-        {/* --- ERUDA MOBILE CONSOLE INJECTOR --- */}
-        <Script 
-          src="//cdn.jsdelivr.net/npm/eruda" 
-          strategy="afterInteractive"
-          onLoad={() => {
-            // @ts-ignore
-            if (typeof eruda !== 'undefined') eruda.init();
-          }}
-        />
-        {/* ------------------------------------- */}
+        <Eruda />
       
       </body>
     </html>
   );
 }
-
