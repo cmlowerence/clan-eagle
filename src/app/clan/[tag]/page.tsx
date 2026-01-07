@@ -1,13 +1,13 @@
 'use client';
 
 import { useClashData } from "@/hooks/useClashData";
+import { timeAgo } from "@/lib/utils"; // <--- IMPORTED
 import { Users, Swords, Trophy, Map, RefreshCw, Clock, ShieldAlert, Globe } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import Loading from "@/app/loading";
 
-// ... [Keep Interfaces the same, omitting here for brevity but include them in your file] ...
-// Re-adding minimal interfaces so the code is copy-pasteable without errors
+// --- Minimal Interfaces (Keep these consistent) ---
 interface ClanMember {
   tag: string;
   name: string;
@@ -51,7 +51,15 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
   const tag = decodeURIComponent(params.tag);
   const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'cwl'>('overview');
 
-  const { data: clan, loading: clanLoading, isCached, lastUpdated, refresh: refreshClan } = useClashData<ClanData>(`clan_${tag}`, `/clans/${tag}`);
+  // Destructure 'timestamp' here
+  const { 
+    data: clan, 
+    loading: clanLoading, 
+    isCached, 
+    timestamp, // <--- NEW
+    refresh: refreshClan 
+  } = useClashData<ClanData>(`clan_${tag}`, `/clans/${tag}`);
+
   const { data: cwl, loading: cwlLoading, refresh: refreshCWL } = useClashData<CWLData>(`cwl_${tag}`, `/clans/${tag}/currentwar/leaguegroup`);
 
   if (clanLoading) return <Loading />;
@@ -72,7 +80,13 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
             <RefreshCw size={14} className={clanLoading ? "animate-spin" : ""} />
             {clanLoading ? "Updating..." : "Update"}
           </button>
-          {isCached && <span className="text-[10px] text-skin-muted mt-1 flex items-center gap-1"><Clock size={10} /> Cached</span>}
+          
+          {/* UPDATED CACHED LABEL */}
+          {isCached && timestamp && (
+            <span className="text-[10px] text-skin-muted mt-1 flex items-center gap-1 bg-black/20 px-2 py-0.5 rounded">
+              <Clock size={10} /> Cached {timeAgo(timestamp)}
+            </span>
+          )}
         </div>
 
         <div className="flex flex-col md:flex-row items-center gap-6 z-0">
