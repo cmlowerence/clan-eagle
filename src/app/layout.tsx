@@ -1,21 +1,25 @@
-import type { Metadata } from "next";
-import { Inter, Luckiest_Guy } from "next/font/google"; // <--- Import from google
+ import type { Metadata } from "next";
+// 1. Import fonts from Google
+import { Inter, Luckiest_Guy } from "next/font/google"; 
 import "./globals.css";
-import { ThemeProvider } from "@/components/ThemeProvider";
+// 2. Correct Named Import for ThemeProvider
+import { ThemeProvider } from "@/components/ThemeProvider"; 
 import Navbar from "@/components/Navbar";
 import FaviconManager from "@/components/FaviconManager";
 
-// 1. Setup Inter (Standard Text)
+// 3. Configure Inter (Standard Text)
 const inter = Inter({ 
   subsets: ["latin"], 
-  variable: '--font-inter' 
+  variable: '--font-inter',
+  display: 'swap', // Prevents invisible text while loading
 });
 
-
+// 4. Configure Luckiest Guy (Headings)
 const clashFont = Luckiest_Guy({
+  weight: "400", // Required: This font only has weight 400
   subsets: ["latin"],
-  weight: "400",
   variable: '--font-clash',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -30,7 +34,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${clashFont.variable} bg-skin-bg text-skin-text transition-colors duration-300 min-h-screen relative`}>
+      {/* 5. Inject Variables into Body ClassName */}
+      <body className={`${inter.variable} ${clashFont.variable} font-sans bg-skin-bg text-skin-text transition-colors duration-300 min-h-screen relative`}>
         
         {/* TEXTURE OVERLAY */}
         <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>
