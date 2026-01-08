@@ -1,4 +1,4 @@
- 'use client';
+'use client';
 
 import { UNIT_CATEGORIES, getUnitIconPath, getHousingSpace, TH_CAPS, getUnlockLevel, getCategoryIcon, getUnitCategory } from "@/lib/unitHelpers";
 import { ArrowLeft, Minus, Plus, Share2, Sword, Trash2, Zap, Home, ChevronDown, Lock, AlertTriangle } from "lucide-react";
@@ -20,7 +20,7 @@ export default function ArmyPlannerPage() {
   const isSiege = (name: string) => UNIT_CATEGORIES.sieges.includes(name);
   const isSuper = (name: string) => UNIT_CATEGORIES.superTroops.includes(name);
 
-  // --- LIVE CALCULATIONS (For UI Rendering) ---
+  // --- LIVE CALCULATIONS ---
   const currentTroopSpace = Object.entries(army).reduce((acc, [name, count]) => {
     return isTroop(name) ? acc + (getHousingSpace(name) * count) : acc;
   }, 0);
@@ -35,13 +35,12 @@ export default function ArmyPlannerPage() {
 
   const activeSuperTypes = Object.keys(army).filter(name => isSuper(name)).length;
 
-  // --- UPDATE LOGIC (Strict Enforcement) ---
+  // --- UPDATE LOGIC ---
   const updateUnit = (name: string, delta: number) => {
     setArmy(prev => {
       const currentCount = prev[name] || 0;
       const unitSpace = getHousingSpace(name);
 
-      // If removing, just do it (no limits check needed)
       if (delta < 0) {
         const next = Math.max(0, currentCount + delta);
         const newArmy = { ...prev, [name]: next };
@@ -49,10 +48,7 @@ export default function ArmyPlannerPage() {
         return newArmy;
       }
 
-      // --- ADDING VALIDATION ---
-      // We must recalculate totals based on 'prev' to be 100% thread-safe
-      
-      // 1. Calculate Current Totals from 'prev'
+      // Add Validation
       let prevTroopSpace = 0;
       let prevSpellSpace = 0;
       let prevSiegeCount = 0;
@@ -65,15 +61,11 @@ export default function ArmyPlannerPage() {
         if (isSuper(n)) prevSuperTypes++;
       });
 
-      // 2. Check Capacity Limits
       if (isTroop(name) && (prevTroopSpace + unitSpace) > caps.troops) return prev;
       if (isSpell(name) && (prevSpellSpace + unitSpace) > caps.spells) return prev;
       if (isSiege(name) && (prevSiegeCount + 1) > caps.sieges) return prev;
-
-      // 3. Check Super Troop Limit (Max 2 Types)
       if (isSuper(name) && currentCount === 0 && prevSuperTypes >= 2) return prev;
 
-      // 4. Apply Change
       const next = currentCount + delta;
       return { ...prev, [name]: next };
     });
@@ -91,8 +83,8 @@ export default function ArmyPlannerPage() {
   return (
     <div className="pb-40 animate-in fade-in duration-500">
        
-       {/* HEADER */}
-       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 relative z-10">
+       {/* HEADER - FIX: Increased Z-Index to 50 so dropdown floats OVER tabs (z-40) */}
+       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 relative z-50">
           <div className="flex items-center justify-between w-full md:w-auto">
               <Link href="/" className="flex items-center gap-2 text-skin-muted hover:text-skin-primary transition-colors">
                 <ArrowLeft size={18} /> <span className="font-bold">Back</span>
@@ -139,7 +131,7 @@ export default function ArmyPlannerPage() {
           </div>
        </div>
 
-       {/* TABS (Lower Z-Index than Navbar) */}
+       {/* TABS (Z-Index 40) - Header is now Z-50, so it wins */}
        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 sticky top-[64px] z-40 bg-skin-bg/95 backdrop-blur py-2 no-scrollbar border-b border-skin-primary/5">
           <button onClick={() => setActiveTab('troops')} className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold uppercase text-xs whitespace-nowrap transition-all ${activeTab === 'troops' ? 'bg-skin-primary text-black' : 'bg-skin-surface text-skin-muted border border-skin-primary/10'}`}><Sword size={14} /> Troops</button>
           <button onClick={() => setActiveTab('spells')} className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold uppercase text-xs whitespace-nowrap transition-all ${activeTab === 'spells' ? 'bg-skin-secondary text-black' : 'bg-skin-surface text-skin-muted border border-skin-primary/10'}`}><Zap size={14} /> Spells</button>
@@ -155,7 +147,6 @@ export default function ArmyPlannerPage() {
              const unlockLevel = getUnlockLevel(unitName);
              const isLocked = thLevel < unlockLevel;
              
-             // --- IS FULL LOGIC (UI Disabling) ---
              let isFull = false;
              if (activeTab === 'troops' && (currentTroopSpace + space) > caps.troops) isFull = true;
              if (activeTab === 'spells' && (currentSpellSpace + space) > caps.spells) isFull = true;
@@ -164,7 +155,6 @@ export default function ArmyPlannerPage() {
 
              const CatIcon = getCategoryIcon(getUnitCategory(unitName, activeTab === 'spells'));
 
-             // Locked State
              if (isLocked) {
                return (
                  <div key={unitName} className="bg-skin-surface/30 border border-skin-muted/5 rounded-xl p-3 flex flex-col items-center justify-center gap-2 opacity-60 min-h-[120px] select-none grayscale relative overflow-hidden">
@@ -181,7 +171,6 @@ export default function ArmyPlannerPage() {
                );
              }
 
-             // Active State
              return (
                <div key={unitName} className={`bg-skin-surface border rounded-xl p-3 flex flex-col items-center gap-3 transition-colors ${count > 0 ? 'border-skin-primary shadow-[0_0_10px_-5px_var(--color-primary)]' : 'border-skin-primary/10'}`}>
                   {/* Icon */}
