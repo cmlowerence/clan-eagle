@@ -1,4 +1,4 @@
-'use client';
+ 'use client';
 
 import { UNIT_CATEGORIES, getUnitIconPath, getHousingSpace, TH_CAPS } from "@/lib/unitHelpers";
 import useLongPress from "@/hooks/useLongPress";
@@ -16,18 +16,23 @@ export default function ArmyPlannerPage() {
   const caps = TH_CAPS[thLevel] || TH_CAPS[17];
 
   // --- CALCULATIONS ---
+  // Helper to check if a unit is in a specific list
+  const isTroop = (name: string) => UNIT_CATEGORIES.troops.includes(name);
+  const isSpell = (name: string) => UNIT_CATEGORIES.spells.includes(name);
+  const isSiege = (name: string) => UNIT_CATEGORIES.sieges.includes(name);
+
   const currentTroopSpace = Object.entries(army).reduce((acc, [name, count]) => {
-    if (UNIT_CATEGORIES.troops.includes(name)) return acc + (getHousingSpace(name) * count);
+    if (isTroop(name)) return acc + (getHousingSpace(name) * count);
     return acc;
   }, 0);
 
   const currentSpellSpace = Object.entries(army).reduce((acc, [name, count]) => {
-    if (UNIT_CATEGORIES.spells.includes(name)) return acc + (getHousingSpace(name) * count);
+    if (isSpell(name)) return acc + (getHousingSpace(name) * count);
     return acc;
   }, 0);
 
   const currentSiegeCount = Object.entries(army).reduce((acc, [name, count]) => {
-    if (UNIT_CATEGORIES.sieges.includes(name)) return acc + count;
+    if (isSiege(name)) return acc + count;
     return acc;
   }, 0);
 
@@ -36,15 +41,12 @@ export default function ArmyPlannerPage() {
     setArmy(prev => {
       const currentCount = prev[name] || 0;
       const unitSpace = getHousingSpace(name);
-      const category = UNIT_CATEGORIES.troops.includes(name) ? 'troop' 
-         : UNIT_CATEGORIES.spells.includes(name) ? 'spell' 
-         : 'siege';
 
       // Validation logic for Adding
       if (delta > 0) {
-        if (category === 'troop' && (currentTroopSpace + unitSpace) > caps.troops) return prev;
-        if (category === 'spell' && (currentSpellSpace + unitSpace) > caps.spells) return prev;
-        if (category === 'siege' && (currentSiegeCount + 1) > caps.sieges) return prev;
+        if (isTroop(name) && (currentTroopSpace + unitSpace) > caps.troops) return prev;
+        if (isSpell(name) && (currentSpellSpace + unitSpace) > caps.spells) return prev;
+        if (isSiege(name) && (currentSiegeCount + 1) > caps.sieges) return prev;
       }
 
       const next = Math.max(0, currentCount + delta);
@@ -58,20 +60,26 @@ export default function ArmyPlannerPage() {
 
   // --- DEEP LINK ---
   const generateLink = () => {
+    // CoC Deep Link Format
     const encodedArmy = Object.entries(army)
        .map(([name, count]) => `${count}x${name.replace(/ /g, '')}`)
        .join('-');
     return `clashofclans://action=openarmy&army=${encodedArmy}`;
   };
 
-  // --- BUTTON COMPONENT FOR LONG PRESS ---
+  // --- ACTION BUTTON (With Long Press Fix) ---
   const ActionButton = ({ icon: Icon, action, disabled, colorClass }: any) => {
-    const longPressProps = useLongPress(action, 80); // 80ms speed
+    // Delay: 1000ms (1s wait)
+    // Speed: 200ms (Controlled pacing)
+    const longPressProps = useLongPress(action, 200, 1000); 
+    
     return (
       <button 
         {...longPressProps}
         disabled={disabled}
-        className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${disabled ? 'opacity-20 cursor-not-allowed' : 'hover:bg-black/10 active:scale-90'} ${colorClass}`}
+        // touch-none: Prevents scrolling/zooming while holding
+        // select-none: Prevents text selection
+        className={`w-8 h-8 flex items-center justify-center rounded transition-colors touch-none select-none ${disabled ? 'opacity-20 cursor-not-allowed' : 'hover:bg-black/10 active:scale-90'} ${colorClass}`}
       >
         <Icon size={14}/>
       </button>
@@ -82,7 +90,7 @@ export default function ArmyPlannerPage() {
     <div className="pb-40 animate-in fade-in duration-500">
        
        {/* HEADER & TH SELECTOR */}
-       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 relative z-50">
           <div className="flex items-center justify-between w-full md:w-auto">
               <Link href="/" className="flex items-center gap-2 text-skin-muted hover:text-skin-primary transition-colors">
                 <ArrowLeft size={18} /> <span className="font-bold">Back</span>
@@ -98,7 +106,9 @@ export default function ArmyPlannerPage() {
                   className="flex items-center gap-2 bg-skin-surface border border-skin-primary/30 pl-2 pr-3 py-1.5 rounded-lg hover:border-skin-primary transition-colors"
                 >
                    <div className="w-8 h-8">
-                     <img src={`/assets/icons/town_hall_${thLevel}.png`} alt="" className="w-full h-full object-contain" />
+                     <img src={`/assets/icons/town_hall_${thLevel}.png`} onError={(e) => { e.currentTarget.style.display='none'; }} alt="" className="w-full h-full object-contain" />
+                     {/* Fallback text if image missing */}
+                     <span className="hidden">TH</span>
                    </div>
                    <div className="text-left">
                       <div className="text-[9px] text-skin-muted font-bold uppercase">Town Hall</div>
@@ -132,7 +142,7 @@ export default function ArmyPlannerPage() {
           </div>
        </div>
 
-       {/* TABS */}
+       {/* TABS (Sticky) */}
        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 sticky top-[70px] z-40 bg-skin-bg/95 backdrop-blur py-2">
           <button onClick={() => setActiveTab('troops')} className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold uppercase text-xs transition-all ${activeTab === 'troops' ? 'bg-skin-primary text-black' : 'bg-skin-surface text-skin-muted border border-skin-primary/10'}`}>
              <Sword size={14} /> Troops
@@ -158,10 +168,10 @@ export default function ArmyPlannerPage() {
              if (activeTab === 'spells' && (currentSpellSpace + space) > caps.spells) isFull = true;
              if (activeTab === 'sieges' && (currentSiegeCount + 1) > caps.sieges) isFull = true;
 
-             // TH availability logic (Simplified: hide sieges if TH < 12)
+             // TH availability logic (Simple: Hide sieges if TH < 12)
              if (activeTab === 'sieges' && thLevel < 12) {
                return (
-                 <div key={unitName} className="bg-skin-surface/50 border border-skin-muted/10 rounded-xl p-3 flex flex-col items-center justify-center gap-2 opacity-50">
+                 <div key={unitName} className="bg-skin-surface/50 border border-skin-muted/10 rounded-xl p-3 flex flex-col items-center justify-center gap-2 opacity-50 min-h-[120px]">
                     <Lock size={20} className="text-skin-muted"/>
                     <span className="text-[10px] uppercase font-bold text-skin-muted">Unlock at TH12</span>
                  </div>
@@ -171,7 +181,12 @@ export default function ArmyPlannerPage() {
              return (
                <div key={unitName} className={`bg-skin-surface border rounded-xl p-3 flex flex-col items-center gap-3 transition-colors ${count > 0 ? 'border-skin-primary shadow-[0_0_10px_-5px_var(--color-primary)]' : 'border-skin-primary/10'}`}>
                   <div className="relative w-14 h-14">
-                     <img src={icon} alt={unitName} className="w-full h-full object-contain drop-shadow-md" />
+                     <img src={icon} onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} alt={unitName} className="w-full h-full object-contain drop-shadow-md" />
+                     {/* Fallback Icon if image missing */}
+                     <div className="hidden w-full h-full flex items-center justify-center bg-black/20 rounded-full">
+                        <Sword size={20} className="text-skin-muted opacity-50"/>
+                     </div>
+                     
                      {count > 0 && (
                         <div className="absolute -top-2 -right-2 bg-skin-primary text-black font-black text-xs w-6 h-6 flex items-center justify-center rounded-full border-2 border-skin-bg shadow-sm animate-in zoom-in">
                            {count}
