@@ -3,8 +3,7 @@
 import { useClashData } from "@/hooks/useClashData";
 import { getUnitIconPath, UNIT_CATEGORIES, getUnitCategory } from "@/lib/unitHelpers";
 import { timeAgo, saveToHistory, toggleFavorite, isFavorite } from "@/lib/utils";
-// FIX: Added 'Swords' to the import list
-import { ArrowLeft, RefreshCw, Shield, Sword, Swords, Home, Zap, Clock, Star, Share2, ShieldPlus, Inbox, Hammer, Map, Crown, Medal, Trophy } from "lucide-react";
+import { ArrowLeft, RefreshCw, Shield, Sword, Swords, Zap, Clock, Star, Share2, ShieldPlus, Inbox, Crown, Medal, Trophy, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import SkeletonLoader from "@/components/SkeletonLoader";
@@ -24,20 +23,17 @@ interface PlayerData {
   name: string;
   townHallLevel: number;
   townHallWeaponLevel?: number;
-  builderHallLevel?: number;
   expLevel: number;
   trophies: number;
   bestTrophies: number;
-  versusTrophies?: number; // Builder Base Trophies
-  bestVersusTrophies?: number;
   warStars: number;
   donations: number;
   donationsReceived: number;
   role: string;
   clan?: { tag: string; name: string; badgeUrls: { small: string; large: string; medium: string }; clanLevel: number };
   leagueTier?: { name: string; iconUrls: { small: string; medium: string } };
-  labels: { name: string; iconUrls: { small: string } }[]; // Player Labels
-  legendStatistics?: { // Legend League Data
+  labels: { name: string; iconUrls: { small: string } }[];
+  legendStatistics?: {
      legendTrophies: number;
      bestSeason: { id: string; rank: number; trophies: number };
      currentSeason: { rank: number; trophies: number };
@@ -51,8 +47,8 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
   const tag = decodeURIComponent(params.tag);
   const [isFav, setIsFav] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [activeVillage, setActiveVillage] = useState<'home' | 'builder'>('home');
   
+  // NOTE: Builder Base logic removed as per request
   const { data: player, loading, isCached, timestamp, refresh } = useClashData<PlayerData>(`player_${tag}`, `/players/${tag}`);
 
   useEffect(() => {
@@ -73,7 +69,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
   if (loading) return <SkeletonLoader />;
   if (!player) return <div className="p-10 text-center font-clash text-xl text-skin-muted">Player not found.</div>;
 
-  // --- DATA SORTING ---
+  // --- DATA SORTING (Home Village Only) ---
   const homeHeroes = player.heroes.filter(h => h.village === 'home');
   const pets = player.troops.filter(t => UNIT_CATEGORIES.pets.includes(t.name));
   const allHomeTroops = player.troops.filter(t => t.village === 'home' && !UNIT_CATEGORIES.pets.includes(t.name));
@@ -82,12 +78,10 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
   const siegeMachines = allHomeTroops.filter(t => getUnitCategory(t.name) === 'Siege Machine');
   const spells = player.spells.filter(s => s.village === 'home');
 
-  const builderHeroes = player.heroes.filter(h => h.village === 'builderBase');
-  const builderTroops = player.troops.filter(t => t.village === 'builderBase');
-
+  // --- SECTION HEADER COMPONENT ---
   const SectionHeader = ({ title, iconName, FallbackIcon, color }: any) => (
-    <h3 className="text-sm font-bold text-skin-muted uppercase tracking-widest mb-3 flex items-center gap-2 border-b border-white/5 pb-2">
-      <div className="w-6 h-6 relative flex items-center justify-center">
+    <h3 className="text-sm font-bold text-skin-muted uppercase tracking-widest mb-3 flex items-center gap-2 border-b border-white/5 pb-2 mt-6">
+      <div className="w-6 h-6 relative flex items-center justify-center shrink-0">
          <img 
             src={`/assets/icons/${iconName}`} 
             onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }}
@@ -100,32 +94,66 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
     </h3>
   );
 
+  // --- UNIT CARD COMPONENT (Fixed Layout & Animation) ---
   const UnitCard = ({ unit, type }: { unit: Unit, type: string }) => {
     const iconPath = getUnitIconPath(unit.name);
     const isMax = unit.level === unit.maxLevel;
     const isSpecial = type === 'Hero' || type === 'Pet';
+    
+    // Fallback Icon Selection
+    let FallbackIcon = Shield; // Default
+    if (type === 'Troop') FallbackIcon = Sword;
+    if (type === 'Spell') FallbackIcon = Zap;
+    if (type === 'Hero') FallbackIcon = Crown;
+    
+    // Tilt wrapper only for special units to save performance/visual noise
     const Wrapper = isSpecial ? TiltWrapper : React.Fragment;
     const wrapperProps = isSpecial ? { isMax } as any : {};
 
     return (
       <Wrapper {...wrapperProps}>
-        <div className={`relative flex flex-col items-center p-2 rounded-lg border transition-all overflow-hidden group h-full aspect-[4/5] 
+        <div className={`relative flex flex-col items-center p-2 rounded-lg border transition-all overflow-hidden group h-full min-h-[110px]
           ${isMax 
             ? 'bg-gradient-to-b from-[#2a3a4b] to-[#1a232e] border-skin-primary/40 shadow-[0_0_10px_-5px_var(--color-primary)]' 
             : 'bg-[#2a3a4b] border-white/5 hover:border-skin-primary/30'}`}
         >
-           <div className="relative w-full flex-1 flex items-center justify-center p-1">
-             {isMax && <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--color-primary)_0%,_transparent_70%)] opacity-20 blur-md"></div>}
-             <img 
-               src={iconPath} 
-               onError={(e) => { e.currentTarget.style.display = 'none'; }} 
-               alt={unit.name} 
-               className={`w-full h-full object-contain drop-shadow-xl transition-transform group-hover:scale-110 ${isMax ? 'filter brightness-110' : ''}`}
-             />
-             {isMax && <div className="absolute top-0 right-0 bg-skin-primary text-black text-[8px] font-black px-1 rounded shadow-sm">MAX</div>}
+           {/* Icon Container with Fire Effect */}
+           <div className="relative w-12 h-12 md:w-14 md:h-14 shrink-0 flex items-center justify-center p-1 mb-1">
+             
+             {/* MAX LEVEL FIRE ANIMATION */}
+             {isMax && (
+               <div className="absolute inset-[-4px] rounded-full overflow-hidden z-0">
+                  <div className="absolute inset-[-50%] bg-[conic-gradient(transparent,var(--color-primary),transparent_30%)] animate-spin-slow blur-sm opacity-100"></div>
+                  <div className="absolute inset-[2px] bg-[#2a3a4b] rounded-full"></div>
+               </div>
+             )}
+
+             {/* Unit Image */}
+             <div className="relative z-10 w-full h-full">
+                <img 
+                  src={iconPath} 
+                  onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} 
+                  alt={unit.name} 
+                  className={`w-full h-full object-contain drop-shadow-xl transition-transform group-hover:scale-110 ${isMax ? 'brightness-110' : ''}`}
+                />
+                {/* Fallback Icon (Hidden by default, shown on error) */}
+                <div className="hidden w-full h-full flex items-center justify-center">
+                   <FallbackIcon size={24} className="text-skin-muted opacity-50"/>
+                </div>
+             </div>
+
+             {/* Max Badge (Overlay) */}
+             {isMax && <div className="absolute -bottom-1 -right-1 bg-skin-primary text-black text-[7px] font-black px-1 rounded shadow-sm z-20">MAX</div>}
            </div>
-           <div className="w-full mt-1">
-              <div className={`text-[10px] text-center font-bold py-0.5 rounded-sm border ${isMax ? 'bg-skin-primary text-black border-skin-primary' : 'bg-black/40 text-skin-muted border-white/5'}`}>
+
+           {/* Name (Truncated if too long) */}
+           <div className="text-[10px] font-bold text-skin-text text-center w-full truncate px-1 leading-tight">
+             {unit.name}
+           </div>
+
+           {/* Level Badge (Anchored to bottom) */}
+           <div className="w-full mt-auto pt-1">
+              <div className={`text-[9px] text-center font-bold py-0.5 rounded-sm border truncate ${isMax ? 'bg-skin-primary text-black border-skin-primary' : 'bg-black/40 text-skin-muted border-white/5'}`}>
                  Lvl {unit.level}
               </div>
            </div>
@@ -142,7 +170,10 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
            <Link href="/" className="text-skin-muted text-xs flex items-center gap-1 hover:text-skin-primary"><ArrowLeft size={14}/> Back</Link>
            <div className="flex items-center gap-2">
              {isCached && timestamp && (
-                 <span className="text-[10px] text-skin-muted flex items-center gap-1"><Clock size={10}/> Data cached {timeAgo(timestamp)} ago</span>
+                 // SHORTENED TEXT for Mobile
+                 <span className="text-[10px] text-skin-muted flex items-center gap-1 bg-black/20 px-2 py-0.5 rounded-full border border-white/5">
+                    <Clock size={10}/> Cached: {timeAgo(timestamp)}
+                 </span>
              )}
            </div>
       </div>
@@ -156,15 +187,14 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
             {/* ROW 1: Header */}
             <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="relative w-12 h-12 flex items-center justify-center">
+                    <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
                         <div className="absolute inset-0 bg-[#4299e1] rotate-45 rounded-sm shadow-lg border-2 border-white/20"></div>
                         <span className="relative z-10 font-clash text-white text-lg font-bold drop-shadow-md">{player.expLevel}</span>
                     </div>
-                    <div>
-                        <h1 className="text-2xl font-clash text-white leading-none tracking-wide">{player.name}</h1>
+                    <div className="min-w-0">
+                        <h1 className="text-2xl font-clash text-white leading-none tracking-wide truncate">{player.name}</h1>
                         <p className="text-skin-muted text-xs font-mono">{player.tag}</p>
                         
-                        {/* 1. PLAYER LABELS */}
                         <div className="flex flex-wrap gap-1 mt-1.5">
                             <span className="text-[10px] bg-white/5 text-skin-muted px-2 py-0.5 rounded border border-white/5 font-bold uppercase">{player.role}</span>
                             {player.labels && player.labels.map((label, idx) => (
@@ -176,14 +206,14 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
                     </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 shrink-0">
                     <button onClick={() => setShowShareModal(true)} className="w-8 h-8 rounded-lg bg-[#374151] hover:bg-[#4b5563] text-skin-muted flex items-center justify-center transition-colors"><Share2 size={16}/></button>
                     <button onClick={handleFav} className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isFav ? 'bg-skin-primary text-black' : 'bg-[#374151] text-skin-muted'}`}><Star size={16} fill={isFav ? "currentColor" : "none"}/></button>
                     <button onClick={() => refresh()} className="w-8 h-8 rounded-lg bg-[#374151] hover:bg-[#4b5563] text-skin-muted flex items-center justify-center transition-colors"><RefreshCw size={16} className={loading ? 'animate-spin' : ''}/></button>
                 </div>
             </div>
 
-            {/* 2. LEGEND STATISTICS (Conditional) */}
+            {/* ROW 2: Legend Stats */}
             {player.legendStatistics && (
                 <div className="bg-gradient-to-r from-[#2e1a47] to-[#1f2937] rounded-lg p-3 border border-purple-500/30 flex justify-between items-center relative overflow-hidden group">
                      <div className="absolute -right-4 -top-4 text-purple-500/10 rotate-12 group-hover:rotate-0 transition-transform"><Medal size={64} /></div>
@@ -201,10 +231,10 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
                 </div>
             )}
 
-            {/* ROW 3: The Triad (Context Aware) */}
+            {/* ROW 3: Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-[#111827]/50 rounded-xl p-4 border border-white/5">
                 
-                {/* CLAN INFO */}
+                {/* CLAN */}
                 {player.clan ? (
                     <Link href={`/clan/${encodeURIComponent(player.clan.tag)}`} className="md:col-start-2 md:row-start-1 flex flex-col items-center justify-center text-center group">
                         <div className="relative mb-2">
@@ -221,46 +251,45 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
                     </div>
                 )}
 
-                {/* 3. DYNAMIC STATS (Home vs Builder) */}
+                {/* TOWN HALL */}
                 <div className="md:col-start-1 md:row-start-1 flex items-center md:flex-col md:items-start gap-4 md:justify-center border-b md:border-b-0 md:border-r border-white/5 pb-4 md:pb-0">
                     <div className="relative w-14 h-14 md:w-16 md:h-16 shrink-0">
-                        {/* Toggle Icon based on Village */}
                         <img 
-                            src={activeVillage === 'home' ? `/assets/icons/town_hall_${player.townHallLevel}.png` : `/assets/icons/builder_hall_${player.builderHallLevel || 1}.png`} 
+                            src={`/assets/icons/town_hall_${player.townHallLevel}.png`} 
                             className="w-full h-full object-contain drop-shadow-md" 
-                            onError={(e) => { if(activeVillage==='builder') e.currentTarget.src='/assets/icons/town_hall_1.png' }}
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
                             alt=""
                         />
-                        {activeVillage === 'home' && player.townHallWeaponLevel && (
+                        {/* Fallback for TH Image if missing */}
+                        <div className="absolute inset-0 flex items-center justify-center text-skin-muted opacity-20 -z-10"><Home size={32}/></div>
+                        
+                        {player.townHallWeaponLevel && (
                             <div className="absolute bottom-0 right-0 flex">
                                 {[...Array(player.townHallWeaponLevel)].map((_, i) => <Star key={i} size={8} className="text-orange-500 fill-orange-500" />)}
                             </div>
                         )}
                     </div>
                     <div>
-                        <div className="text-xs text-skin-muted uppercase font-bold">{activeVillage === 'home' ? 'Town Hall' : 'Builder Hall'}</div>
-                        <div className="text-xl font-clash text-white">{activeVillage === 'home' ? player.townHallLevel : (player.builderHallLevel || 'N/A')}</div>
+                        <div className="text-xs text-skin-muted uppercase font-bold">Town Hall</div>
+                        <div className="text-xl font-clash text-white">{player.townHallLevel}</div>
                     </div>
                 </div>
 
-                {/* 3. DYNAMIC TROPHIES */}
+                {/* TROPHIES */}
                 <div className="md:col-start-3 md:row-start-1 flex items-center md:flex-col md:items-end gap-4 md:justify-center border-t md:border-t-0 md:border-l border-white/5 pt-4 md:pt-0 text-right">
                     <div className="flex-1 md:flex-none">
-                        <div className="text-xs text-skin-muted uppercase font-bold">{activeVillage === 'home' ? 'Trophies' : 'Versus Trophies'}</div>
+                        <div className="text-xs text-skin-muted uppercase font-bold">Trophies</div>
                         <div className="text-xl font-clash text-white flex items-center md:justify-end gap-2">
-                             <Trophy size={16} className={activeVillage === 'home' ? "text-[#ffd700]" : "text-gray-400"}/> 
-                             {activeVillage === 'home' ? player.trophies : (player.versusTrophies || 0)}
+                             <Trophy size={16} className="text-[#ffd700]"/> {player.trophies}
                         </div>
-                        <div className="text-[10px] text-skin-muted">Best: {activeVillage === 'home' ? player.bestTrophies : (player.bestVersusTrophies || 0)}</div>
+                        <div className="text-[10px] text-skin-muted">Best: {player.bestTrophies}</div>
                     </div>
-                    {/* Only show League badge for Home Village */}
-                    {activeVillage === 'home' && player.leagueTier ? (
+                    {player.leagueTier ? (
                          <img src={player.leagueTier.iconUrls.medium} className="w-14 h-14 md:w-16 md:h-16 object-contain drop-shadow-md" alt=""/>
                     ) : (
                         <div className="w-14 h-14 bg-white/5 rounded-full flex items-center justify-center"><Trophy className="text-skin-muted"/></div>
                     )}
                 </div>
-
             </div>
 
             {/* Donation Bar */}
@@ -277,27 +306,10 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
                  </div>
             </div>
         </div>
-
-        {/* --- VILLAGE TABS --- */}
-        <div className="flex bg-[#111827]">
-            <button 
-                onClick={() => setActiveVillage('home')}
-                className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors ${activeVillage === 'home' ? 'bg-[#374151] text-white border-t-2 border-skin-primary' : 'text-skin-muted hover:bg-[#1f2937]'}`}
-            >
-                <Home size={16} /> Home Village
-            </button>
-            <button 
-                onClick={() => setActiveVillage('builder')}
-                className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors ${activeVillage === 'builder' ? 'bg-[#374151] text-white border-t-2 border-skin-secondary' : 'text-skin-muted hover:bg-[#1f2937]'}`}
-            >
-                <Hammer size={16} /> Builder Base
-            </button>
-        </div>
       </div>
 
-      {/* --- UNIT GRIDS --- */}
-      {activeVillage === 'home' && (
-        <div className="space-y-8">
+      {/* --- UNIT SECTIONS (Home Village Only) --- */}
+      <div className="space-y-8">
             {(homeHeroes.length > 0 || pets.length > 0) && (
                 <section>
                     <SectionHeader title="Heroes & Pets" iconName="hero_hall.png" FallbackIcon={Crown} color="text-skin-primary" />
@@ -307,6 +319,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
                     </div>
                 </section>
             )}
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <section>
                     <SectionHeader title="Elixir Troops" iconName="elixir.png" FallbackIcon={Sword} color="text-pink-400" />
@@ -314,6 +327,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
                         {elixirTroops.map(t => <UnitCard key={t.name} unit={t} type="Troop" />)}
                     </div>
                 </section>
+
                 <section>
                     <SectionHeader title="Dark Troops" iconName="dark_elixir.png" FallbackIcon={Sword} color="text-indigo-400" />
                     <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-4 gap-2">
@@ -321,6 +335,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
                     </div>
                 </section>
             </div>
+            
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <section>
                     <SectionHeader title="Spells" iconName="spell_factory.png" FallbackIcon={Zap} color="text-blue-400" />
@@ -328,48 +343,17 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
                         {spells.map(s => <UnitCard key={s.name} unit={s} type="Spell" />)}
                     </div>
                 </section>
+
                 {siegeMachines.length > 0 && (
                     <section>
-                        <SectionHeader title="Siege Machines" iconName="siege_barracks.png" FallbackIcon={Home} color="text-yellow-600" />
+                        <SectionHeader title="Siege Machines" iconName="siege_barracks.png" FallbackIcon={Shield} color="text-yellow-600" />
                         <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-4 gap-2">
                             {siegeMachines.map(s => <UnitCard key={s.name} unit={s} type="Siege" />)}
                         </div>
                     </section>
                 )}
             </div>
-        </div>
-      )}
-
-      {activeVillage === 'builder' && (
-         <div className="space-y-8 min-h-[300px]">
-             {builderHeroes.length > 0 && (
-                <section>
-                    <h3 className="text-sm font-bold text-skin-muted uppercase tracking-widest mb-3 flex items-center gap-2 border-b border-white/5 pb-2">
-                        <Hammer size={18} className="text-skin-secondary"/> Builder Machines
-                    </h3>
-                    <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-                        {builderHeroes.map(h => <UnitCard key={h.name} unit={h} type="Hero" />)}
-                    </div>
-                </section>
-             )}
-             {builderTroops.length > 0 && (
-                <section>
-                    <h3 className="text-sm font-bold text-skin-muted uppercase tracking-widest mb-3 flex items-center gap-2 border-b border-white/5 pb-2">
-                        <Sword size={18} className="text-orange-400"/> Builder Troops
-                    </h3>
-                    <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-                        {builderTroops.map(t => <UnitCard key={t.name} unit={t} type="Troop" />)}
-                    </div>
-                </section>
-             )}
-             {builderHeroes.length === 0 && builderTroops.length === 0 && (
-                 <div className="text-center py-10 opacity-50">
-                     <Map size={48} className="mx-auto mb-2 text-skin-muted"/>
-                     <p className="text-skin-muted">No Builder Base data available.</p>
-                 </div>
-             )}
-         </div>
-      )}
+      </div>
 
       {showShareModal && <ShareProfileModal player={player} onClose={() => setShowShareModal(false)} />}
     </div>
