@@ -1,10 +1,9 @@
-'use client';
+ 'use client';
 
 import { useClashData } from "@/hooks/useClashData";
 import { getUnitIconPath, UNIT_CATEGORIES, getUnitCategory } from "@/lib/unitHelpers";
 import { timeAgo, saveToHistory, toggleFavorite, isFavorite } from "@/lib/utils";
-// FIX: Added 'Home' back to imports
-import { ArrowLeft, RefreshCw, Shield, Sword, Swords, Zap, Clock, Star, Share2, ShieldPlus, Inbox, Crown, Medal, Trophy, AlertCircle, Home } from "lucide-react";
+import { ArrowLeft, RefreshCw, Shield, Sword, Home, Zap, Clock, Castle, Trophy, ChevronRight, Star, Share2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import SkeletonLoader from "@/components/SkeletonLoader";
@@ -23,7 +22,6 @@ interface PlayerData {
   tag: string;
   name: string;
   townHallLevel: number;
-  townHallWeaponLevel?: number;
   expLevel: number;
   trophies: number;
   bestTrophies: number;
@@ -31,14 +29,8 @@ interface PlayerData {
   donations: number;
   donationsReceived: number;
   role: string;
-  clan?: { tag: string; name: string; badgeUrls: { small: string; large: string; medium: string }; clanLevel: number };
-  leagueTier?: { name: string; iconUrls: { small: string; medium: string } };
-  labels: { name: string; iconUrls: { small: string } }[];
-  legendStatistics?: {
-     legendTrophies: number;
-     bestSeason: { id: string; rank: number; trophies: number };
-     currentSeason: { rank: number; trophies: number };
-  };
+  clan?: { tag: string; name: string; badgeUrls: { small: string; large: string; medium: string } };
+  leagueTier?: { name: string; iconUrls: { small: string } };
   troops: Unit[];
   heroes: Unit[];
   spells: Unit[];
@@ -69,82 +61,61 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
   if (loading) return <SkeletonLoader />;
   if (!player) return <div className="p-10 text-center font-clash text-xl text-skin-muted">Player not found.</div>;
 
-  // --- DATA SORTING ---
   const homeHeroes = player.heroes.filter(h => h.village === 'home');
   const pets = player.troops.filter(t => UNIT_CATEGORIES.pets.includes(t.name));
   const allHomeTroops = player.troops.filter(t => t.village === 'home' && !UNIT_CATEGORIES.pets.includes(t.name));
   const elixirTroops = allHomeTroops.filter(t => getUnitCategory(t.name) === 'Elixir Troop');
   const darkTroops = allHomeTroops.filter(t => getUnitCategory(t.name) === 'Dark Troop');
   const siegeMachines = allHomeTroops.filter(t => getUnitCategory(t.name) === 'Siege Machine');
-  const spells = player.spells.filter(s => s.village === 'home');
+  const elixirSpells = player.spells.filter(s => getUnitCategory(s.name, true) === 'Elixir Spell');
+  const darkSpells = player.spells.filter(s => getUnitCategory(s.name, true) === 'Dark Spell');
 
-  // --- SECTION HEADER COMPONENT ---
-  const SectionHeader = ({ title, iconName, FallbackIcon, color }: any) => (
-    <h3 className="text-sm font-bold text-skin-muted uppercase tracking-widest mb-3 flex items-center gap-2 border-b border-white/5 pb-2 mt-6">
-      <div className="w-6 h-6 relative flex items-center justify-center shrink-0">
-         <img 
-            src={`/assets/icons/${iconName}`} 
-            onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }}
-            alt="" 
-            className="w-full h-full object-contain drop-shadow-md"
-         />
-         <FallbackIcon size={18} className={`hidden ${color}`}/>
-      </div>
-      {title}
-    </h3>
-  );
-
-  // --- UNIT CARD COMPONENT ---
+  // --- UNIT CARD (UPDATED: Fire only on Icon) ---
   const UnitCard = ({ unit, type }: { unit: Unit, type: string }) => {
     const iconPath = getUnitIconPath(unit.name);
     const isMax = unit.level === unit.maxLevel;
     const isSpecial = type === 'Hero' || type === 'Pet';
-    
-    let FallbackIcon = Shield;
-    if (type === 'Troop') FallbackIcon = Sword;
-    if (type === 'Spell') FallbackIcon = Zap;
-    if (type === 'Hero') FallbackIcon = Crown;
-    
     const Wrapper = isSpecial ? TiltWrapper : React.Fragment;
     const wrapperProps = isSpecial ? { isMax } as any : {};
 
+    // 1. Define the Icon Container (Where the fire goes)
+    const IconDisplay = (
+      <div className="relative w-12 h-12 shrink-0">
+         {isMax ? (
+           // --- FIRE EFFECT (ICON ONLY) ---
+           <div className="absolute inset-[-4px] rounded-lg overflow-hidden z-0">
+              {/* Spinning Fire Gradient */}
+              <div className="absolute inset-[-50%] bg-[conic-gradient(transparent,var(--color-primary),transparent_30%)] animate-spin-slow blur-sm opacity-100"></div>
+              {/* Inner Mask to create the "outline" look */}
+              <div className="absolute inset-[2px] bg-skin-surface rounded-md"></div>
+           </div>
+         ) : null}
+
+         {/* The Actual Image (Sitting on top of fire) */}
+         <div className="relative z-10 w-full h-full">
+            <img 
+              src={iconPath} 
+              onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} 
+              alt={unit.name} 
+              className={`object-contain w-full h-full drop-shadow-md transition-transform group-hover:scale-110 backface-hidden ${isMax ? 'brightness-110' : ''}`}
+            />
+            {/* Fallback */}
+            <div className="hidden absolute top-0 left-0 w-full h-full flex items-center justify-center text-skin-muted opacity-30"><Shield size={24} /></div>
+            
+            {/* Max Badge */}
+            {isMax && <div className="absolute -bottom-2 -right-2 bg-skin-primary text-black text-[7px] font-black px-1.5 py-0.5 rounded shadow-sm border border-white/20 z-20 scale-90">MAX</div>}
+         </div>
+      </div>
+    );
+
     return (
       <Wrapper {...wrapperProps}>
-        <div className={`relative flex flex-col items-center p-2 rounded-lg border transition-all overflow-hidden group h-full min-h-[110px]
-          ${isMax 
-            ? 'bg-gradient-to-b from-[#2a3a4b] to-[#1a232e] border-skin-primary/40 shadow-[0_0_10px_-5px_var(--color-primary)]' 
-            : 'bg-[#2a3a4b] border-white/5 hover:border-skin-primary/30'}`}
-        >
-           <div className="relative w-12 h-12 md:w-14 md:h-14 shrink-0 flex items-center justify-center p-1 mb-1">
-             {isMax && (
-               <div className="absolute inset-[-4px] rounded-full overflow-hidden z-0">
-                  <div className="absolute inset-[-50%] bg-[conic-gradient(transparent,var(--color-primary),transparent_30%)] animate-spin-slow blur-sm opacity-100"></div>
-                  <div className="absolute inset-[2px] bg-[#2a3a4b] rounded-full"></div>
-               </div>
-             )}
-
-             <div className="relative z-10 w-full h-full">
-                <img 
-                  src={iconPath} 
-                  onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} 
-                  alt={unit.name} 
-                  className={`w-full h-full object-contain drop-shadow-xl transition-transform group-hover:scale-110 ${isMax ? 'brightness-110' : ''}`}
-                />
-                <div className="hidden w-full h-full flex items-center justify-center">
-                   <FallbackIcon size={24} className="text-skin-muted opacity-50"/>
-                </div>
-             </div>
-
-             {isMax && <div className="absolute -bottom-1 -right-1 bg-skin-primary text-black text-[7px] font-black px-1 rounded shadow-sm z-20">MAX</div>}
-           </div>
-
-           <div className="text-[10px] font-bold text-skin-text text-center w-full truncate px-1 leading-tight">
-             {unit.name}
-           </div>
-
-           <div className="w-full mt-auto pt-1">
-              <div className={`text-[9px] text-center font-bold py-0.5 rounded-sm border truncate ${isMax ? 'bg-skin-primary text-black border-skin-primary' : 'bg-black/40 text-skin-muted border-white/5'}`}>
-                 Lvl {unit.level}
+        <div className={`relative flex items-center gap-3 p-2 rounded-lg border transition-all overflow-hidden group h-full hover:scale-[1.02] ${isMax ? 'bg-skin-surface border-skin-primary/30 shadow-[0_0_15px_-10px_var(--color-primary)]' : 'bg-skin-surface border-skin-primary/10 hover:border-skin-primary/30'}`}>
+           {IconDisplay}
+           <div className="flex-1 min-w-0 flex flex-col justify-center z-10">
+              <h4 className="text-xs md:text-sm font-bold text-skin-text truncate leading-tight group-hover:text-skin-primary transition-colors">{unit.name}</h4>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${isMax ? 'bg-skin-primary text-black font-bold' : 'bg-black/30 text-skin-muted'}`}>Lvl {unit.level}</span>
               </div>
            </div>
         </div>
@@ -153,196 +124,81 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
   };
 
   return (
-    <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500 pb-24">
+    <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-20">
       
-      {/* --- TOP NAV --- */}
-      <div className="flex justify-between items-center px-1">
-           <Link href="/" className="text-skin-muted text-xs flex items-center gap-1 hover:text-skin-primary"><ArrowLeft size={14}/> Back</Link>
-           <div className="flex items-center gap-2">
-             {isCached && timestamp && (
-                 <span className="text-[10px] text-skin-muted flex items-center gap-1 bg-black/20 px-2 py-0.5 rounded-full border border-white/5">
-                    <Clock size={10}/> Cached: {timeAgo(timestamp)}
-                 </span>
-             )}
-           </div>
-      </div>
+      {/* --- HEADER --- */}
+      <div className="flex flex-col gap-4">
+        <div className="flex justify-between items-center">
+             <Link href="/" className="text-skin-muted text-xs flex items-center gap-1 hover:text-skin-primary"><ArrowLeft size={14}/> Home</Link>
+             <div className="flex items-center gap-2">
+               <button onClick={() => setShowShareModal(true)} className="flex items-center justify-center w-8 h-8 rounded-full bg-skin-surface border border-skin-muted/30 text-skin-muted hover:text-skin-primary hover:border-skin-primary transition-all"><Share2 size={14} /></button>
+               <button onClick={handleFav} className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all ${isFav ? 'bg-skin-primary border-skin-primary text-black shadow-[0_0_10px_var(--color-primary)]' : 'bg-skin-surface border-skin-muted/30 text-skin-muted hover:text-skin-primary'}`}><Star size={14} fill={isFav ? "currentColor" : "none"} /></button>
+               <button onClick={() => refresh()} className="flex items-center gap-2 bg-skin-surface border border-skin-primary/30 px-3 py-1.5 rounded-full hover:bg-skin-primary hover:text-white transition-colors text-[10px] font-bold uppercase tracking-widest">
+                 <RefreshCw size={10} className={loading ? "animate-spin" : ""}/> Update
+               </button>
+             </div>
+        </div>
 
-      {/* --- MAIN PROFILE CARD --- */}
-      <div className="bg-[#1f2937] border border-[#374151] rounded-xl overflow-hidden shadow-2xl relative">
-        <div className="absolute inset-0 opacity-5 bg-[url('/assets/pattern.png')] pointer-events-none"></div>
-
-        <div className="relative z-10 p-5 pb-0 flex flex-col gap-6">
-            
-            {/* ROW 1: Header */}
-            <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
-                        <div className="absolute inset-0 bg-[#4299e1] rotate-45 rounded-sm shadow-lg border-2 border-white/20"></div>
-                        <span className="relative z-10 font-clash text-white text-lg font-bold drop-shadow-md">{player.expLevel}</span>
-                    </div>
-                    <div className="min-w-0">
-                        <h1 className="text-2xl font-clash text-white leading-none tracking-wide truncate">{player.name}</h1>
-                        <p className="text-skin-muted text-xs font-mono">{player.tag}</p>
-                        
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                            <span className="text-[10px] bg-white/5 text-skin-muted px-2 py-0.5 rounded border border-white/5 font-bold uppercase">{player.role}</span>
-                            {player.labels && player.labels.map((label, idx) => (
-                                <div key={idx} className="flex items-center gap-1 bg-[#111827] px-2 py-0.5 rounded border border-white/10" title={label.name}>
-                                    <img src={label.iconUrls.small} className="w-3 h-3" alt=""/>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+        {/* PLAYER BANNER (Polished) */}
+        <div className="bg-skin-surface/90 backdrop-blur-md border border-skin-primary/20 rounded-2xl p-5 relative overflow-hidden shadow-2xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-skin-bg via-transparent to-skin-primary/5"></div>
+          <div className="relative z-10 flex flex-col md:flex-row gap-6">
+             <div className="flex items-center gap-4 md:flex-col md:items-start md:gap-4 md:border-r border-skin-primary/10 md:pr-6">
+                 <div className="w-20 h-20 bg-skin-bg rounded-xl border-2 border-skin-primary/30 flex items-center justify-center relative shadow-inner shrink-0">
+                    <img src={`/assets/icons/town_hall_${player.townHallLevel}.png`} onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} alt={`TH ${player.townHallLevel}`} className="w-full h-full object-contain p-1 drop-shadow-xl"/>
+                    <div className="absolute -bottom-2 bg-skin-primary text-black text-xs font-black px-2 py-0.5 rounded border border-white/20">{player.townHallLevel}</div>
+                 </div>
+                 <div className="flex-1 min-w-0 md:hidden">
+                    <h1 className="text-2xl font-clash text-skin-text uppercase tracking-wide truncate">{player.name}</h1>
+                    <p className="text-skin-muted font-mono text-xs opacity-80">{player.tag}</p>
+                 </div>
+             </div>
+             <div className="flex-1 flex flex-col justify-center">
+                <div className="hidden md:block mb-2">
+                    <h1 className="text-4xl lg:text-5xl font-clash text-skin-text uppercase tracking-wide drop-shadow-sm">{player.name}</h1>
+                    <p className="text-skin-muted font-mono text-sm opacity-80">{player.tag}</p>
                 </div>
-
-                <div className="flex gap-2 shrink-0">
-                    <button onClick={() => setShowShareModal(true)} className="w-8 h-8 rounded-lg bg-[#374151] hover:bg-[#4b5563] text-skin-muted flex items-center justify-center transition-colors"><Share2 size={16}/></button>
-                    <button onClick={handleFav} className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isFav ? 'bg-skin-primary text-black' : 'bg-[#374151] text-skin-muted'}`}><Star size={16} fill={isFav ? "currentColor" : "none"}/></button>
-                    <button onClick={() => refresh()} className="w-8 h-8 rounded-lg bg-[#374151] hover:bg-[#4b5563] text-skin-muted flex items-center justify-center transition-colors"><RefreshCw size={16} className={loading ? 'animate-spin' : ''}/></button>
-                </div>
-            </div>
-
-            {/* ROW 2: Legend Stats */}
-            {player.legendStatistics && (
-                <div className="bg-gradient-to-r from-[#2e1a47] to-[#1f2937] rounded-lg p-3 border border-purple-500/30 flex justify-between items-center relative overflow-hidden group">
-                     <div className="absolute -right-4 -top-4 text-purple-500/10 rotate-12 group-hover:rotate-0 transition-transform"><Medal size={64} /></div>
-                     <div className="flex items-center gap-3 relative z-10">
-                         <div className="bg-purple-500/20 p-2 rounded-full border border-purple-500/50"><Swords size={16} className="text-purple-300"/></div>
-                         <div>
-                             <div className="text-[10px] text-purple-300 font-bold uppercase">Legend Season</div>
-                             <div className="text-white font-bold text-sm">Best: {player.legendStatistics.bestSeason.trophies} <span className="text-[10px] text-purple-400 font-normal">Rank {player.legendStatistics.bestSeason.rank}</span></div>
-                         </div>
-                     </div>
-                     <div className="text-right relative z-10">
-                         <div className="text-[10px] text-purple-300 font-bold uppercase">Current</div>
-                         <div className="text-white font-bold">{player.legendStatistics.legendTrophies} <span className="text-[10px]">Trophies</span></div>
-                     </div>
-                </div>
-            )}
-
-            {/* ROW 3: Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-[#111827]/50 rounded-xl p-4 border border-white/5">
                 
-                {/* CLAN */}
-                {player.clan ? (
-                    <Link href={`/clan/${encodeURIComponent(player.clan.tag)}`} className="md:col-start-2 md:row-start-1 flex flex-col items-center justify-center text-center group">
-                        <div className="relative mb-2">
-                             <img src={player.clan.badgeUrls.medium} className="w-16 h-16 drop-shadow-lg group-hover:scale-110 transition-transform" alt=""/>
-                             <div className="absolute -bottom-2 -right-2 bg-black text-white text-[10px] font-bold px-1.5 py-0.5 rounded border border-white/20">Lvl {player.clan.clanLevel}</div>
-                        </div>
-                        <div className="text-sm font-clash text-white group-hover:text-skin-primary transition-colors">{player.clan.name}</div>
-                        <div className="text-[10px] text-skin-muted">Clan Member</div>
-                    </Link>
-                ) : (
-                    <div className="md:col-start-2 md:row-start-1 flex flex-col items-center justify-center text-center opacity-50">
-                        <Shield size={48} className="text-skin-muted mb-2"/>
-                        <div className="text-sm font-bold text-skin-muted">No Clan</div>
-                    </div>
-                )}
+                {/* Stats & Timestamp Restored */}
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                   <span className="bg-skin-bg text-skin-text text-[10px] font-bold uppercase px-2 py-1 rounded border border-skin-primary/20">{player.role}</span>
+                   <span className="bg-skin-bg text-skin-secondary text-[10px] font-bold uppercase px-2 py-1 rounded border border-skin-secondary/20">Lvl {player.expLevel}</span>
+                   
+                   {/* Restored Timestamp */}
+                   {isCached && timestamp && (
+                       <span className="bg-black/20 text-skin-muted text-[10px] px-2 py-1 rounded flex items-center gap-1 border border-white/5">
+                         <Clock size={10}/> {timeAgo(timestamp)}
+                       </span>
+                   )}
 
-                {/* TOWN HALL */}
-                <div className="md:col-start-1 md:row-start-1 flex items-center md:flex-col md:items-start gap-4 md:justify-center border-b md:border-b-0 md:border-r border-white/5 pb-4 md:pb-0">
-                    <div className="relative w-14 h-14 md:w-16 md:h-16 shrink-0">
-                        <img 
-                            src={`/assets/icons/town_hall_${player.townHallLevel}.png`} 
-                            className="w-full h-full object-contain drop-shadow-md" 
-                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                            alt=""
-                        />
-                        {/* Correctly using the Home icon as fallback */}
-                        <div className="absolute inset-0 flex items-center justify-center text-skin-muted opacity-20 -z-10"><Home size={32}/></div>
-                        
-                        {player.townHallWeaponLevel && (
-                            <div className="absolute bottom-0 right-0 flex">
-                                {[...Array(player.townHallWeaponLevel)].map((_, i) => <Star key={i} size={8} className="text-orange-500 fill-orange-500" />)}
-                            </div>
-                        )}
-                    </div>
-                    <div>
-                        <div className="text-xs text-skin-muted uppercase font-bold">Town Hall</div>
-                        <div className="text-xl font-clash text-white">{player.townHallLevel}</div>
-                    </div>
+                   {player.clan && (
+                     <Link href={`/clan/${encodeURIComponent(player.clan.tag)}`} className="flex items-center gap-2 bg-skin-bg border border-skin-muted/30 pl-1 pr-3 py-0.5 rounded-full hover:border-skin-primary hover:bg-skin-surface transition-all group ml-auto md:ml-0">
+                        <img src={player.clan.badgeUrls.small} className="w-5 h-5 object-contain" alt="" />
+                        <span className="text-[10px] font-bold text-skin-muted group-hover:text-skin-primary uppercase tracking-wider">{player.clan.name}</span>
+                        <ChevronRight size={10} className="text-skin-muted"/>
+                     </Link>
+                   )}
                 </div>
 
-                {/* TROPHIES */}
-                <div className="md:col-start-3 md:row-start-1 flex items-center md:flex-col md:items-end gap-4 md:justify-center border-t md:border-t-0 md:border-l border-white/5 pt-4 md:pt-0 text-right">
-                    <div className="flex-1 md:flex-none">
-                        <div className="text-xs text-skin-muted uppercase font-bold">Trophies</div>
-                        <div className="text-xl font-clash text-white flex items-center md:justify-end gap-2">
-                             <Trophy size={16} className="text-[#ffd700]"/> {player.trophies}
-                        </div>
-                        <div className="text-[10px] text-skin-muted">Best: {player.bestTrophies}</div>
+                <div className="grid grid-cols-2 gap-3 max-w-sm">
+                    <div className="bg-skin-bg/60 p-2 rounded-lg border border-skin-primary/10 flex items-center gap-3">
+                        {player.leagueTier ? <img src={player.leagueTier.iconUrls.small} className="w-8 h-8 drop-shadow" alt="League" /> : <Trophy size={24} className="text-skin-muted"/>}
+                        <div><div className="text-[10px] uppercase text-skin-muted font-bold leading-none mb-1">Trophies</div><div className="text-sm font-clash text-white leading-none">{player.trophies}</div></div>
                     </div>
-                    {player.leagueTier ? (
-                         <img src={player.leagueTier.iconUrls.medium} className="w-14 h-14 md:w-16 md:h-16 object-contain drop-shadow-md" alt=""/>
-                    ) : (
-                        <div className="w-14 h-14 bg-white/5 rounded-full flex items-center justify-center"><Trophy className="text-skin-muted"/></div>
-                    )}
+                    <div className="bg-skin-bg/60 p-2 rounded-lg border border-skin-primary/10 flex items-center gap-3">
+                        <div className="w-8 h-8 flex items-center justify-center"><Sword size={20} className="text-orange-500" /></div>
+                        <div><div className="text-[10px] uppercase text-skin-muted font-bold leading-none mb-1">War Stars</div><div className="text-sm font-clash text-orange-500 leading-none">{player.warStars}</div></div>
+                    </div>
                 </div>
-            </div>
-
-            {/* Donation Bar */}
-            <div className="bg-[#4c1d95] rounded-lg p-3 flex items-center justify-between text-white shadow-lg relative overflow-hidden mb-6">
-                 <div className="absolute top-0 left-0 w-full h-1/2 bg-white/10 pointer-events-none"></div>
-                 <div className="flex flex-col items-start relative z-10">
-                    <span className="text-[10px] uppercase font-bold opacity-80 flex items-center gap-1"><ShieldPlus size={12}/> Troops Donated</span>
-                    <span className="font-clash text-xl leading-none">{player.donations}</span>
-                 </div>
-                 <div className="h-8 w-px bg-white/20"></div>
-                 <div className="flex flex-col items-end relative z-10">
-                    <span className="text-[10px] uppercase font-bold opacity-80 flex items-center gap-1">Troops Received <Inbox size={12}/></span>
-                    <span className="font-clash text-xl leading-none">{player.donationsReceived}</span>
-                 </div>
-            </div>
+             </div>
+          </div>
         </div>
       </div>
 
       {/* --- UNIT SECTIONS --- */}
-      <div className="space-y-8">
-            {(homeHeroes.length > 0 || pets.length > 0) && (
-                <section>
-                    <SectionHeader title="Heroes & Pets" iconName="hero_hall.png" FallbackIcon={Crown} color="text-skin-primary" />
-                    <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-                        {homeHeroes.map(h => <UnitCard key={h.name} unit={h} type="Hero" />)}
-                        {pets.map(p => <UnitCard key={p.name} unit={p} type="Pet" />)}
-                    </div>
-                </section>
-            )}
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <section>
-                    <SectionHeader title="Elixir Troops" iconName="elixir.png" FallbackIcon={Sword} color="text-pink-400" />
-                    <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-4 gap-2">
-                        {elixirTroops.map(t => <UnitCard key={t.name} unit={t} type="Troop" />)}
-                    </div>
-                </section>
-
-                <section>
-                    <SectionHeader title="Dark Troops" iconName="dark_elixir.png" FallbackIcon={Sword} color="text-indigo-400" />
-                    <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-4 gap-2">
-                        {darkTroops.map(t => <UnitCard key={t.name} unit={t} type="Troop" />)}
-                    </div>
-                </section>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <section>
-                    <SectionHeader title="Spells" iconName="spell_factory.png" FallbackIcon={Zap} color="text-blue-400" />
-                    <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-4 gap-2">
-                        {spells.map(s => <UnitCard key={s.name} unit={s} type="Spell" />)}
-                    </div>
-                </section>
-
-                {siegeMachines.length > 0 && (
-                    <section>
-                        <SectionHeader title="Siege Machines" iconName="siege_barracks.png" FallbackIcon={Shield} color="text-yellow-600" />
-                        <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-4 gap-2">
-                            {siegeMachines.map(s => <UnitCard key={s.name} unit={s} type="Siege" />)}
-                        </div>
-                    </section>
-                )}
-            </div>
-      </div>
+      <section><h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2"><Shield size={18} className="text-skin-primary"/> Heroes & Pets</h3><div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">{homeHeroes.map(h => <UnitCard key={h.name} unit={h} type="Hero" />)}{pets.map(p => <UnitCard key={p.name} unit={p} type="Pet" />)}</div></section>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8"><section><h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2"><Sword size={18} className="text-pink-400"/> Elixir Troops</h3><div className="grid grid-cols-2 md:grid-cols-3 gap-2">{elixirTroops.map(t => <UnitCard key={t.name} unit={t} type="Elixir Troop" />)}</div></section><section><h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2"><Zap size={18} className="text-indigo-400"/> Dark Troops</h3><div className="grid grid-cols-2 md:grid-cols-3 gap-2">{darkTroops.map(t => <UnitCard key={t.name} unit={t} type="Dark Troop" />)}</div></section></div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8"><section><h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2"><Clock size={18} className="text-blue-400"/> Spells</h3><div className="grid grid-cols-2 md:grid-cols-3 gap-2">{elixirSpells.map(s => <UnitCard key={s.name} unit={s} type="Elixir Spell" />)}{darkSpells.map(s => <UnitCard key={s.name} unit={s} type="Dark Spell" />)}</div></section>{siegeMachines.length > 0 && (<section><h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2"><Home size={18} className="text-yellow-600"/> Sieges</h3><div className="grid grid-cols-2 md:grid-cols-3 gap-2">{siegeMachines.map(s => <UnitCard key={s.name} unit={s} type="Siege Machine" />)}</div></section>)}</div>
 
       {showShareModal && <ShareProfileModal player={player} onClose={() => setShowShareModal(false)} />}
     </div>
