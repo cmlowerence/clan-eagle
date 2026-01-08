@@ -3,7 +3,7 @@ import { Inter, Luckiest_Guy } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Navbar from "@/components/Navbar";
-
+import Eruda from "@/components/Eruda";
 const inter = Inter({ 
   subsets: ["latin"], 
   variable: '--font-inter',
@@ -60,6 +60,9 @@ export default function RootLayout({
             </footer>
           </div>
         </ThemeProvider>
+        <div className="fixed bottom-0 left-0 z-[9999]">
+             <Eruda />
+        </div>
       </body>
     </html>
   );
