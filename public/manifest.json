@@ -1,0 +1,21 @@
+ {
+  "name": "Clan Eagle",
+  "short_name": "Clan Eagle",
+  "description": "Clash of Clans Tracker & Army Planner",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#FACC15",
+  "icons": [
+    {
+      "src": "/assets/icons/electro_owl.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/icons/electro_owl.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
