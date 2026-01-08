@@ -150,30 +150,33 @@ export default function ArmyPlannerPage() {
             <div className="mb-6 sticky top-[125px] z-30 bg-skin-bg/95 backdrop-blur py-3 border-b border-skin-primary/5 animate-in slide-in-from-top-2">
                  <div className="text-[10px] uppercase font-bold text-skin-muted mb-2 px-1 flex justify-between">
                     <span>Current Army</span>
-                    <span className="text-red-400 opacity-60">Tap to remove</span>
                  </div>
-                 <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar px-1 min-h-[85px]">
+                 <div className="flex gap-2 overflow-x-auto pb-4 pt-1 no-scrollbar px-1 min-h-[90px]">
                     {sortedSelectedUnits.map(([name, count]) => (
-                        <button 
-                            key={name} 
-                            onClick={() => updateUnit(name, -1)}
-                            className="group relative w-[60px] h-[72px] rounded-lg overflow-hidden border border-[#4a7a9b] shrink-0 bg-[#2a3a4b] shadow-md transition-transform active:scale-95"
-                        >
-                            {/* Blue Header Bar */}
-                            <div className="absolute top-0 inset-x-0 h-6 bg-gradient-to-b from-[#5c9dd1] via-[#4a8dbb] to-[#3a6a8b] flex items-center justify-center text-white font-clash text-sm z-10 border-b border-[#2a4a6b] shadow-sm">
-                                <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">x{count}</span>
-                            </div>
+                        <div key={name} className="relative group w-[60px] h-[72px] shrink-0">
                             
-                            {/* Icon Container - Full 1:1 view */}
-                            <div className="absolute inset-0 top-6 flex items-center justify-center bg-gradient-to-b from-[#2e3b4e] to-[#1a232e] p-1">
-                                <img src={getUnitIconPath(name)} alt={name} className="w-full h-full object-contain drop-shadow-xl" />
+                            {/* Card Body */}
+                            <div className="w-full h-full rounded-lg overflow-hidden border border-[#4a7a9b] bg-[#2a3a4b] shadow-md relative">
+                                {/* Blue Header Bar */}
+                                <div className="absolute top-0 inset-x-0 h-6 bg-gradient-to-b from-[#5c9dd1] via-[#4a8dbb] to-[#3a6a8b] flex items-center justify-center text-white font-clash text-sm z-10 border-b border-[#2a4a6b] shadow-sm">
+                                    <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">x{count}</span>
+                                </div>
+                                
+                                {/* Icon Container */}
+                                <div className="absolute inset-0 top-6 flex items-center justify-center bg-gradient-to-b from-[#2e3b4e] to-[#1a232e] p-1">
+                                    <img src={getUnitIconPath(name)} alt={name} className="w-full h-full object-contain drop-shadow-xl" />
+                                </div>
                             </div>
 
-                            {/* Red Minus Overlay (Appears on Hover/Active) */}
-                            <div className="absolute inset-0 bg-red-600/80 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity z-20 backdrop-blur-[1px]">
-                                <Minus className="text-white drop-shadow-lg stroke-[4px]" size={24}/>
-                            </div>
-                        </button>
+                            {/* Minus Button (Top Right Corner) */}
+                            <button 
+                                onClick={() => updateUnit(name, -1)}
+                                className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-b from-red-400 to-red-600 rounded-full border-2 border-white/90 shadow-lg flex items-center justify-center z-20 hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+                            >
+                                <Minus size={14} className="text-white font-bold drop-shadow-md stroke-[3px]" />
+                            </button>
+
+                        </div>
                     ))}
                  </div>
             </div>
