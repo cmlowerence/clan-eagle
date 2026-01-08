@@ -3,7 +3,8 @@
 import { useClashData } from "@/hooks/useClashData";
 import { getUnitIconPath, UNIT_CATEGORIES, getUnitCategory } from "@/lib/unitHelpers";
 import { timeAgo, saveToHistory, toggleFavorite, isFavorite } from "@/lib/utils";
-import { ArrowLeft, RefreshCw, Shield, Sword, Home, Zap, Clock, Star, Share2, ShieldPlus, Inbox, Hammer, Map, Crown, Medal, Trophy } from "lucide-react";
+// FIX: Added 'Swords' to the import list
+import { ArrowLeft, RefreshCw, Shield, Sword, Swords, Home, Zap, Clock, Star, Share2, ShieldPlus, Inbox, Hammer, Map, Crown, Medal, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import SkeletonLoader from "@/components/SkeletonLoader";
@@ -163,7 +164,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
                         <h1 className="text-2xl font-clash text-white leading-none tracking-wide">{player.name}</h1>
                         <p className="text-skin-muted text-xs font-mono">{player.tag}</p>
                         
-                        {/* 1. UPGRADE: PLAYER LABELS */}
+                        {/* 1. PLAYER LABELS */}
                         <div className="flex flex-wrap gap-1 mt-1.5">
                             <span className="text-[10px] bg-white/5 text-skin-muted px-2 py-0.5 rounded border border-white/5 font-bold uppercase">{player.role}</span>
                             {player.labels && player.labels.map((label, idx) => (
@@ -182,7 +183,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
                 </div>
             </div>
 
-            {/* 2. UPGRADE: LEGEND STATISTICS (Conditional) */}
+            {/* 2. LEGEND STATISTICS (Conditional) */}
             {player.legendStatistics && (
                 <div className="bg-gradient-to-r from-[#2e1a47] to-[#1f2937] rounded-lg p-3 border border-purple-500/30 flex justify-between items-center relative overflow-hidden group">
                      <div className="absolute -right-4 -top-4 text-purple-500/10 rotate-12 group-hover:rotate-0 transition-transform"><Medal size={64} /></div>
@@ -220,7 +221,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
                     </div>
                 )}
 
-                {/* 3. UPGRADE: DYNAMIC STATS (Home vs Builder) */}
+                {/* 3. DYNAMIC STATS (Home vs Builder) */}
                 <div className="md:col-start-1 md:row-start-1 flex items-center md:flex-col md:items-start gap-4 md:justify-center border-b md:border-b-0 md:border-r border-white/5 pb-4 md:pb-0">
                     <div className="relative w-14 h-14 md:w-16 md:h-16 shrink-0">
                         {/* Toggle Icon based on Village */}
@@ -242,7 +243,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
                     </div>
                 </div>
 
-                {/* 3. UPGRADE: DYNAMIC TROPHIES */}
+                {/* 3. DYNAMIC TROPHIES */}
                 <div className="md:col-start-3 md:row-start-1 flex items-center md:flex-col md:items-end gap-4 md:justify-center border-t md:border-t-0 md:border-l border-white/5 pt-4 md:pt-0 text-right">
                     <div className="flex-1 md:flex-none">
                         <div className="text-xs text-skin-muted uppercase font-bold">{activeVillage === 'home' ? 'Trophies' : 'Versus Trophies'}</div>
