@@ -1,6 +1,6 @@
  'use client';
 
-import { UNIT_CATEGORIES, getUnitIconPath, getHousingSpace, TH_CAPS } from "@/lib/unitHelpers";
+import { UNIT_CATEGORIES, getUnitIconPath, getHousingSpace, TH_CAPS, getUnlockLevel } from "@/lib/unitHelpers";
 import useLongPress from "@/hooks/useLongPress";
 import { ArrowLeft, Minus, Plus, Share2, Sword, Trash2, Zap, Home, ChevronDown, Lock } from "lucide-react";
 import Link from "next/link";
@@ -9,14 +9,13 @@ import { useState } from "react";
 export default function ArmyPlannerPage() {
   const [army, setArmy] = useState<Record<string, number>>({});
   const [activeTab, setActiveTab] = useState<'troops' | 'spells' | 'sieges'>('troops');
-  const [thLevel, setThLevel] = useState<number>(17); // Default Max TH
+  const [thLevel, setThLevel] = useState<number>(17); // Default to Max
   const [isThMenuOpen, setIsThMenuOpen] = useState(false);
 
   // --- CAPS ---
   const caps = TH_CAPS[thLevel] || TH_CAPS[17];
 
   // --- CALCULATIONS ---
-  // Helper to check if a unit is in a specific list
   const isTroop = (name: string) => UNIT_CATEGORIES.troops.includes(name);
   const isSpell = (name: string) => UNIT_CATEGORIES.spells.includes(name);
   const isSiege = (name: string) => UNIT_CATEGORIES.sieges.includes(name);
@@ -58,30 +57,26 @@ export default function ArmyPlannerPage() {
 
   const clearArmy = () => setArmy({});
 
-  // --- DEEP LINK ---
   const generateLink = () => {
-    // CoC Deep Link Format
     const encodedArmy = Object.entries(army)
        .map(([name, count]) => `${count}x${name.replace(/ /g, '')}`)
        .join('-');
     return `clashofclans://action=openarmy&army=${encodedArmy}`;
   };
 
-  // --- ACTION BUTTON (With Long Press Fix) ---
+  // --- BUTTON COMPONENT (MOBILE FIX) ---
   const ActionButton = ({ icon: Icon, action, disabled, colorClass }: any) => {
-    // Delay: 1000ms (1s wait)
-    // Speed: 200ms (Controlled pacing)
-    const longPressProps = useLongPress(action, 200, 1000); 
+    const longPressProps = useLongPress(action, 150, 600); 
     
     return (
       <button 
         {...longPressProps}
         disabled={disabled}
-        // touch-none: Prevents scrolling/zooming while holding
-        // select-none: Prevents text selection
-        className={`w-8 h-8 flex items-center justify-center rounded transition-colors touch-none select-none ${disabled ? 'opacity-20 cursor-not-allowed' : 'hover:bg-black/10 active:scale-90'} ${colorClass}`}
+        // KEY FIX: Prevent Right-Click/Long-Press Context Menu
+        onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
+        className={`w-10 h-10 md:w-8 md:h-8 flex items-center justify-center rounded transition-colors touch-none select-none ${disabled ? 'opacity-20 cursor-not-allowed' : 'hover:bg-black/10 active:scale-90'} ${colorClass}`}
       >
-        <Icon size={14}/>
+        <Icon size={16}/>
       </button>
     );
   };
@@ -89,7 +84,7 @@ export default function ArmyPlannerPage() {
   return (
     <div className="pb-40 animate-in fade-in duration-500">
        
-       {/* HEADER & TH SELECTOR */}
+       {/* HEADER */}
        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 relative z-50">
           <div className="flex items-center justify-between w-full md:w-auto">
               <Link href="/" className="flex items-center gap-2 text-skin-muted hover:text-skin-primary transition-colors">
@@ -99,7 +94,6 @@ export default function ArmyPlannerPage() {
           </div>
 
           <div className="flex items-center gap-3 self-end md:self-auto">
-             {/* TH DROPDOWN */}
              <div className="relative">
                 <button 
                   onClick={() => setIsThMenuOpen(!isThMenuOpen)}
@@ -107,7 +101,6 @@ export default function ArmyPlannerPage() {
                 >
                    <div className="w-8 h-8">
                      <img src={`/assets/icons/town_hall_${thLevel}.png`} onError={(e) => { e.currentTarget.style.display='none'; }} alt="" className="w-full h-full object-contain" />
-                     {/* Fallback text if image missing */}
                      <span className="hidden">TH</span>
                    </div>
                    <div className="text-left">
@@ -124,7 +117,7 @@ export default function ArmyPlannerPage() {
                         return (
                           <button 
                             key={lvl}
-                            onClick={() => { setThLevel(lvl); setIsThMenuOpen(false); }}
+                            onClick={() => { setThLevel(lvl); setArmy({}); setIsThMenuOpen(false); }} // Resets army on TH change to prevent illegal units
                             className={`flex items-center gap-3 w-full p-2 rounded hover:bg-skin-bg text-left ${thLevel === lvl ? 'bg-skin-primary/10 border border-skin-primary/30' : ''}`}
                           >
                              <img src={`/assets/icons/town_hall_${lvl}.png`} className="w-6 h-6 object-contain" alt=""/>
@@ -135,24 +128,15 @@ export default function ArmyPlannerPage() {
                   </div>
                 )}
              </div>
-
-             <button onClick={clearArmy} className="p-2 text-red-400 hover:bg-red-400/10 rounded-full transition-colors" title="Clear All">
-                <Trash2 size={18} />
-             </button>
+             <button onClick={clearArmy} className="p-2 text-red-400 hover:bg-red-400/10 rounded-full transition-colors"><Trash2 size={18} /></button>
           </div>
        </div>
 
-       {/* TABS (Sticky) */}
-       <div className="flex gap-2 mb-6 overflow-x-auto pb-2 sticky top-[70px] z-40 bg-skin-bg/95 backdrop-blur py-2">
-          <button onClick={() => setActiveTab('troops')} className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold uppercase text-xs transition-all ${activeTab === 'troops' ? 'bg-skin-primary text-black' : 'bg-skin-surface text-skin-muted border border-skin-primary/10'}`}>
-             <Sword size={14} /> Troops
-          </button>
-          <button onClick={() => setActiveTab('spells')} className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold uppercase text-xs transition-all ${activeTab === 'spells' ? 'bg-skin-secondary text-black' : 'bg-skin-surface text-skin-muted border border-skin-primary/10'}`}>
-             <Zap size={14} /> Spells
-          </button>
-          <button onClick={() => setActiveTab('sieges')} className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold uppercase text-xs transition-all ${activeTab === 'sieges' ? 'bg-orange-500 text-black' : 'bg-skin-surface text-skin-muted border border-skin-primary/10'}`}>
-             <Home size={14} /> Machines
-          </button>
+       {/* TABS */}
+       <div className="flex gap-2 mb-6 overflow-x-auto pb-2 sticky top-[70px] z-40 bg-skin-bg/95 backdrop-blur py-2 no-scrollbar">
+          <button onClick={() => setActiveTab('troops')} className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold uppercase text-xs whitespace-nowrap transition-all ${activeTab === 'troops' ? 'bg-skin-primary text-black' : 'bg-skin-surface text-skin-muted border border-skin-primary/10'}`}><Sword size={14} /> Troops</button>
+          <button onClick={() => setActiveTab('spells')} className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold uppercase text-xs whitespace-nowrap transition-all ${activeTab === 'spells' ? 'bg-skin-secondary text-black' : 'bg-skin-surface text-skin-muted border border-skin-primary/10'}`}><Zap size={14} /> Spells</button>
+          <button onClick={() => setActiveTab('sieges')} className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold uppercase text-xs whitespace-nowrap transition-all ${activeTab === 'sieges' ? 'bg-orange-500 text-black' : 'bg-skin-surface text-skin-muted border border-skin-primary/10'}`}><Home size={14} /> Machines</button>
        </div>
 
        {/* GRID */}
@@ -162,18 +146,27 @@ export default function ArmyPlannerPage() {
              const space = getHousingSpace(unitName);
              const icon = getUnitIconPath(unitName);
              
-             // Check if disabled based on cap
+             // UNLOCK LOGIC: Check if Unit is unlocked at current TH
+             const unlockLevel = getUnlockLevel(unitName);
+             const isLocked = thLevel < unlockLevel;
+
+             // CAP LOGIC: Check if army camp is full
              let isFull = false;
              if (activeTab === 'troops' && (currentTroopSpace + space) > caps.troops) isFull = true;
              if (activeTab === 'spells' && (currentSpellSpace + space) > caps.spells) isFull = true;
              if (activeTab === 'sieges' && (currentSiegeCount + 1) > caps.sieges) isFull = true;
 
-             // TH availability logic (Simple: Hide sieges if TH < 12)
-             if (activeTab === 'sieges' && thLevel < 12) {
+             if (isLocked) {
                return (
-                 <div key={unitName} className="bg-skin-surface/50 border border-skin-muted/10 rounded-xl p-3 flex flex-col items-center justify-center gap-2 opacity-50 min-h-[120px]">
-                    <Lock size={20} className="text-skin-muted"/>
-                    <span className="text-[10px] uppercase font-bold text-skin-muted">Unlock at TH12</span>
+                 <div key={unitName} className="bg-skin-surface/30 border border-skin-muted/5 rounded-xl p-3 flex flex-col items-center justify-center gap-2 opacity-60 min-h-[120px] select-none grayscale">
+                    <div className="relative">
+                       <img src={icon} alt="" className="w-10 h-10 object-contain opacity-50" />
+                       <div className="absolute inset-0 flex items-center justify-center text-skin-muted"><Lock size={16}/></div>
+                    </div>
+                    <div className="text-center">
+                       <div className="text-[10px] font-bold text-skin-muted truncate max-w-[80px]">{unitName}</div>
+                       <div className="text-[9px] text-red-400 font-bold uppercase">Unlock TH{unlockLevel}</div>
+                    </div>
                  </div>
                );
              }
@@ -182,16 +175,8 @@ export default function ArmyPlannerPage() {
                <div key={unitName} className={`bg-skin-surface border rounded-xl p-3 flex flex-col items-center gap-3 transition-colors ${count > 0 ? 'border-skin-primary shadow-[0_0_10px_-5px_var(--color-primary)]' : 'border-skin-primary/10'}`}>
                   <div className="relative w-14 h-14">
                      <img src={icon} onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} alt={unitName} className="w-full h-full object-contain drop-shadow-md" />
-                     {/* Fallback Icon if image missing */}
-                     <div className="hidden w-full h-full flex items-center justify-center bg-black/20 rounded-full">
-                        <Sword size={20} className="text-skin-muted opacity-50"/>
-                     </div>
-                     
-                     {count > 0 && (
-                        <div className="absolute -top-2 -right-2 bg-skin-primary text-black font-black text-xs w-6 h-6 flex items-center justify-center rounded-full border-2 border-skin-bg shadow-sm animate-in zoom-in">
-                           {count}
-                        </div>
-                     )}
+                     <div className="hidden w-full h-full flex items-center justify-center bg-black/20 rounded-full"><Sword size={20} className="text-skin-muted opacity-50"/></div>
+                     {count > 0 && <div className="absolute -top-2 -right-2 bg-skin-primary text-black font-black text-xs w-6 h-6 flex items-center justify-center rounded-full border-2 border-skin-bg shadow-sm animate-in zoom-in">{count}</div>}
                   </div>
                   
                   <div className="text-center w-full">
@@ -200,60 +185,26 @@ export default function ArmyPlannerPage() {
                   </div>
 
                   <div className="flex items-center gap-1 bg-skin-bg rounded-lg p-1 w-full justify-between">
-                     <ActionButton 
-                       icon={Minus} 
-                       action={() => updateUnit(unitName, -1)} 
-                       disabled={count <= 0} 
-                       colorClass="text-skin-muted hover:text-red-400"
-                     />
+                     <ActionButton icon={Minus} action={() => updateUnit(unitName, -1)} disabled={count <= 0} colorClass="text-skin-muted hover:text-red-400" />
                      <span className="font-mono font-bold text-sm w-6 text-center select-none">{count}</span>
-                     <ActionButton 
-                       icon={Plus} 
-                       action={() => updateUnit(unitName, 1)} 
-                       disabled={isFull} 
-                       colorClass="text-skin-primary hover:text-white"
-                     />
+                     <ActionButton icon={Plus} action={() => updateUnit(unitName, 1)} disabled={isFull} colorClass="text-skin-primary hover:text-white" />
                   </div>
                </div>
              );
           })}
        </div>
 
-       {/* STICKY FOOTER SUMMARY */}
-       <div className="fixed bottom-0 left-0 w-full bg-skin-surface/95 backdrop-blur-md border-t border-skin-primary/20 p-4 z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.3)]">
+       {/* FOOTER */}
+       <div className="fixed bottom-0 left-0 w-full bg-skin-surface/95 backdrop-blur-md border-t border-skin-primary/20 p-4 z-50 pb-6 md:pb-4 shadow-[0_-5px_20px_rgba(0,0,0,0.3)]">
           <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-             
-             {/* STATS */}
-             <div className="flex items-center gap-6 text-sm w-full md:w-auto justify-between md:justify-start">
-                <div className="flex flex-col">
-                   <span className="text-[10px] text-skin-muted uppercase font-bold">Troops</span>
-                   <span className={`font-clash text-xl ${currentTroopSpace >= caps.troops ? 'text-green-400' : 'text-skin-text'}`}>
-                      {currentTroopSpace}<span className="text-skin-muted text-sm">/{caps.troops}</span>
-                   </span>
-                </div>
+             <div className="flex items-center gap-4 text-sm w-full md:w-auto justify-between md:justify-start px-2">
+                <div className="flex flex-col items-center md:items-start"><span className="text-[10px] text-skin-muted uppercase font-bold">Troops</span><span className={`font-clash text-lg ${currentTroopSpace >= caps.troops ? 'text-green-400' : 'text-skin-text'}`}>{currentTroopSpace}<span className="text-skin-muted text-xs">/{caps.troops}</span></span></div>
                 <div className="h-8 w-px bg-white/10"></div>
-                <div className="flex flex-col">
-                   <span className="text-[10px] text-skin-muted uppercase font-bold">Spells</span>
-                   <span className={`font-clash text-xl ${currentSpellSpace >= caps.spells ? 'text-green-400' : 'text-skin-secondary'}`}>
-                      {currentSpellSpace}<span className="text-skin-muted text-sm">/{caps.spells}</span>
-                   </span>
-                </div>
+                <div className="flex flex-col items-center md:items-start"><span className="text-[10px] text-skin-muted uppercase font-bold">Spells</span><span className={`font-clash text-lg ${currentSpellSpace >= caps.spells ? 'text-green-400' : 'text-skin-secondary'}`}>{currentSpellSpace}<span className="text-skin-muted text-xs">/{caps.spells}</span></span></div>
                 <div className="h-8 w-px bg-white/10"></div>
-                <div className="flex flex-col">
-                   <span className="text-[10px] text-skin-muted uppercase font-bold">Machines</span>
-                   <span className={`font-clash text-xl ${currentSiegeCount >= caps.sieges ? 'text-green-400' : 'text-orange-500'}`}>
-                      {currentSiegeCount}<span className="text-skin-muted text-sm">/{caps.sieges}</span>
-                   </span>
-                </div>
+                <div className="flex flex-col items-center md:items-start"><span className="text-[10px] text-skin-muted uppercase font-bold">Sieges</span><span className={`font-clash text-lg ${currentSiegeCount >= caps.sieges ? 'text-green-400' : 'text-orange-500'}`}>{currentSiegeCount}<span className="text-skin-muted text-xs">/{caps.sieges}</span></span></div>
              </div>
-
-             {/* ACTIONS */}
-             <a 
-               href={generateLink()} 
-               className="w-full md:w-auto bg-green-500 hover:bg-green-400 text-black font-black uppercase py-3 px-8 rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-lg shadow-green-500/20"
-             >
-                <Share2 size={18} /> Train Army
-             </a>
+             <a href={generateLink()} className="w-full md:w-auto bg-green-500 hover:bg-green-400 text-black font-black uppercase py-3 px-8 rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-lg shadow-green-500/20"><Share2 size={18} /> Train Army</a>
           </div>
        </div>
     </div>

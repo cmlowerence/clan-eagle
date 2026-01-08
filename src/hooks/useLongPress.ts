@@ -2,22 +2,21 @@
 
 export default function useLongPress(
   callback: () => void,
-  speed = 200, // Loop speed (ms) - Increased to 200ms for control
-  delay = 1000 // Start delay (ms) - Increased to 1000ms
+  speed = 200,
+  delay = 800
 ) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const start = useCallback((e?: React.SyntheticEvent) => {
-    // Prevent default to stop scrolling/selecting while holding
-    if (e && e.type === 'touchstart') {
-        // e.preventDefault(); // Optional: might block scrolling on some devices
+  const start = useCallback((e: React.SyntheticEvent) => {
+    // IMPORTANT: Stop the long-press context menu on Android
+    if (e.type === 'touchstart') {
+       // We don't preventDefault() here because it blocks scrolling the page
+       // Instead, we handle context menu prevention on the button itself
     }
+    
+    callback(); // Fire once immediately
 
-    // 1. Single Tap Action (Fire immediately)
-    callback();
-
-    // 2. Start Timer for Long Press
     timeoutRef.current = setTimeout(() => {
       intervalRef.current = setInterval(() => {
         callback();
@@ -26,7 +25,6 @@ export default function useLongPress(
   }, [callback, speed, delay]);
 
   const stop = useCallback(() => {
-    // Clear both timers immediately on release
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (intervalRef.current) clearInterval(intervalRef.current);
   }, []);

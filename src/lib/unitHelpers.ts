@@ -147,3 +147,34 @@ export const getCategoryIcon = (category: string) => {
     default: return Crosshair;
   }
 };
+
+export const UNIT_UNLOCKS: Record<string, number> = {
+  // Elixir Troops
+  "Barbarian": 1, "Archer": 1, "Giant": 1, "Goblin": 2, "Wall Breaker": 2,
+  "Balloon": 2, "Wizard": 5, "Healer": 6, "Dragon": 7, "PEKKA": 8,
+  "Baby Dragon": 9, "Miner": 10, "Electro Dragon": 11, "Yeti": 12,
+  "Dragon Rider": 13, "Electro Titan": 14, "Root Rider": 15, 
+  "Electrofire Wizard": 16, "Druid": 17, "Thrower": 17, // Assuming TH17 for latest
+  
+  // Dark Troops
+  "Minion": 7, "Hog Rider": 7, "Valkyrie": 8, "Golem": 8, "Witch": 9,
+  "Lava Hound": 9, "Bowler": 10, "Ice Golem": 11, "Headhunter": 12,
+  "Apprentice Warden": 13, "Furnace": 17,
+  
+  // Spells
+  "Lightning Spell": 5, "Healing Spell": 6, "Rage Spell": 7, "Jump Spell": 9,
+  "Freeze Spell": 9, "Clone Spell": 10, "Invisibility Spell": 11, "Recall Spell": 13,
+  "Revive Spell": 15, "Totem Spell": 16,
+  "Poison Spell": 8, "Earthquake Spell": 8, "Haste Spell": 9, "Skeleton Spell": 9,
+  "Bat Spell": 10, "Overgrowth Spell": 12,
+
+  // Sieges (Workshop Unlocks)
+  "Wall Wrecker": 12, "Battle Blimp": 12, "Stone Slammer": 12, 
+  "Siege Barracks": 13, "Log Launcher": 13, "Flame Flinger": 14, 
+  "Battle Drill": 15, "Troop Launcher": 16
+};
+
+// Helper to get unlock level (default to 1 if missing)
+export const getUnlockLevel = (name: string) => UNIT_UNLOCKS[name] || 1;
+
+// ... keep existing exports (HOUSING_SPACE, TH_CAPS, getUnitCategory, getUnitIconPath) ...
