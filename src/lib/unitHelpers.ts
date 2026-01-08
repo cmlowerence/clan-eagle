@@ -5,7 +5,7 @@ export const HOUSING_SPACE: Record<string, number> = {
   // Elixir Troops
   "Barbarian": 1, "Archer": 1, "Giant": 5, "Goblin": 1, "Wall Breaker": 2,
   "Balloon": 5, "Wizard": 4, "Healer": 14, "Dragon": 20, 
-  "P.E.K.K.A": 25, // Only keeping the dotted version
+  "P.E.K.K.A": 25, // Standard spelling used in game API usually
   "Baby Dragon": 10, "Miner": 6, "Electro Dragon": 30, "Yeti": 18,
   "Dragon Rider": 25, "Electro Titan": 32, "Root Rider": 20, 
   "Electrofire Wizard": 14, "Druid": 16, "Thrower": 10,
@@ -33,9 +33,9 @@ export const HOUSING_SPACE: Record<string, number> = {
   "Log Launcher": 1, "Flame Flinger": 1, "Battle Drill": 1, "Troop Launcher": 1
 };
 
-// --- 2. Unlock Levels ---
+// --- 2. Unlock Levels (Town Hall Requirement) ---
 export const UNIT_UNLOCKS: Record<string, number> = {
-  // Standard Troops
+  // Elixir Troops
   "Barbarian": 1, "Archer": 1, "Giant": 1, "Goblin": 2, "Wall Breaker": 2,
   "Balloon": 2, "Wizard": 5, "Healer": 6, "Dragon": 7, "P.E.K.K.A": 8,
   "Baby Dragon": 9, "Miner": 10, "Electro Dragon": 11, "Yeti": 12,
@@ -47,7 +47,7 @@ export const UNIT_UNLOCKS: Record<string, number> = {
   "Lava Hound": 9, "Bowler": 10, "Ice Golem": 11, "Headhunter": 12,
   "Apprentice Warden": 13, "Furnace": 17,
   
-  // Super Troops (Generally TH11+)
+  // Super Troops (ALL Unlock at TH11)
   "Super Barbarian": 11, "Super Archer": 11, "Super Wall Breaker": 11, "Super Giant": 11,
   "Sneaky Goblin": 11, "Rocket Balloon": 11, "Super Wizard": 11, "Super Dragon": 11,
   "Inferno Dragon": 11, "Super Minion": 11, "Super Valkyrie": 11, "Super Witch": 11,
@@ -60,7 +60,7 @@ export const UNIT_UNLOCKS: Record<string, number> = {
   "Poison Spell": 8, "Earthquake Spell": 8, "Haste Spell": 9, "Skeleton Spell": 9,
   "Bat Spell": 10, "Overgrowth Spell": 12,
 
-  // Sieges
+  // Sieges (ALL Unlock at TH12)
   "Wall Wrecker": 12, "Battle Blimp": 12, "Stone Slammer": 12, 
   "Siege Barracks": 13, "Log Launcher": 13, "Flame Flinger": 14, 
   "Battle Drill": 15, "Troop Launcher": 16
@@ -86,27 +86,65 @@ const superTroops = [
   "Super Dragon", "Super Wizard", "Super Minion", "Super Hog Rider"
 ];
 
-const elixirSpells = ["Lightning Spell", "Healing Spell", "Rage Spell", "Jump Spell", "Freeze Spell", "Clone Spell", "Invisibility Spell", "Recall Spell", "Revive Spell", "Totem Spell"];
-const darkSpells = ["Poison Spell", "Earthquake Spell", "Haste Spell", "Skeleton Spell", "Bat Spell", "Overgrowth Spell"];
-const sieges = ["Wall Wrecker", "Battle Blimp", "Stone Slammer", "Siege Barracks", "Log Launcher", "Flame Flinger", "Battle Drill", "Troop Launcher"];
-const pets = ["L.A.S.S.I", "Mighty Yak", "Electro Owl", "Unicorn", "Diggy", "Frosty", "Phoenix", "Poison Lizard", "Spirit Fox", "Angry Jelly"];
+const elixirSpells = [
+  "Lightning Spell", "Healing Spell", "Rage Spell", "Jump Spell", "Freeze Spell", 
+  "Clone Spell", "Invisibility Spell", "Recall Spell", "Revive Spell", "Totem Spell"
+];
+
+const darkSpells = [
+  "Poison Spell", "Earthquake Spell", "Haste Spell", "Skeleton Spell", 
+  "Bat Spell", "Overgrowth Spell"
+];
+
+const sieges = [
+  "Wall Wrecker", "Battle Blimp", "Stone Slammer", "Siege Barracks", 
+  "Log Launcher", "Flame Flinger", "Battle Drill", "Troop Launcher"
+];
+
+const pets = [
+  "L.A.S.S.I", "Mighty Yak", "Electro Owl", "Unicorn", "Diggy", "Frosty", 
+  "Phoenix", "Poison Lizard", "Spirit Fox", "Angry Jelly"
+];
 
 export const UNIT_CATEGORIES = {
+  // Granular (Profile)
   elixirTroops, darkTroops, superTroops, elixirSpells, darkSpells, pets, sieges,
+  // Combined (Army Planner)
   troops: [...elixirTroops, ...darkTroops, ...superTroops],
   spells: [...elixirSpells, ...darkSpells]
 };
 
-// --- 4. Helpers ---
+// --- 4. Town Hall Caps (Max Capacity) ---
+export const TH_CAPS: Record<number, { troops: number; spells: number; sieges: number }> = {
+  1: { troops: 20, spells: 0, sieges: 0 },
+  2: { troops: 30, spells: 0, sieges: 0 },
+  3: { troops: 70, spells: 0, sieges: 0 },
+  4: { troops: 80, spells: 0, sieges: 0 },
+  5: { troops: 135, spells: 2, sieges: 0 },
+  6: { troops: 150, spells: 4, sieges: 0 },
+  7: { troops: 200, spells: 6, sieges: 0 },
+  8: { troops: 200, spells: 7, sieges: 0 },
+  9: { troops: 220, spells: 9, sieges: 0 },
+  10: { troops: 240, spells: 11, sieges: 0 },
+  11: { troops: 260, spells: 11, sieges: 0 },
+  12: { troops: 280, spells: 11, sieges: 1 },
+  13: { troops: 300, spells: 11, sieges: 1 },
+  14: { troops: 300, spells: 11, sieges: 1 },
+  15: { troops: 320, spells: 11, sieges: 1 },
+  16: { troops: 320, spells: 11, sieges: 1 },
+  17: { troops: 340, spells: 11, sieges: 1 },
+};
+
+// --- 5. Helpers ---
 export const getHousingSpace = (name: string) => HOUSING_SPACE[name] || 0;
-export const getUnlockLevel = (name: string) => UNIT_UNLOCKS[name] || 1;
+// Default to 1 if not found to prevent lock-out errors
+export const getUnlockLevel = (name: string) => UNIT_UNLOCKS[name] || 1; 
 
 export const getUnitIconPath = (name: string) => {
   if (!name) return '/assets/icons/barbarian.png';
-  
   // FIX: Replace dots with underscores (P.E.K.K.A -> p_e_k_k_a)
+  // FIX: Replace spaces with underscores
   const slug = name.toLowerCase().replace(/\./g, "_").replace(/ /g, "_");
-  
   return `/assets/icons/${slug}.png`;
 };
 
@@ -121,9 +159,13 @@ export const getUnitCategory = (name: string, isSpell = false) => {
 
 export const getCategoryIcon = (category: string) => {
   switch(category) {
-    case 'Elixir Troop': return Sword; case 'Dark Troop': return Skull;
-    case 'Super Troop': return Zap; case 'Pet': return Ghost;
-    case 'Siege Machine': return Hexagon; case 'Elixir Spell': return Flame;
-    case 'Dark Spell': return Star; default: return Shield;
+    case 'Elixir Troop': return Sword; 
+    case 'Dark Troop': return Skull;
+    case 'Super Troop': return Zap; 
+    case 'Pet': return Ghost;
+    case 'Siege Machine': return Hexagon; 
+    case 'Elixir Spell': return Flame;
+    case 'Dark Spell': return Star; 
+    default: return Shield;
   }
 };
