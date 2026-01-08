@@ -81,7 +81,7 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-24">
       
-      {/* --- HERO HEADER (Maintained) --- */}
+      {/* --- HERO HEADER --- */}
       <div className="relative bg-[#1a232e] border border-skin-primary/30 rounded-2xl overflow-hidden shadow-2xl">
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-blue-900 via-transparent to-transparent pointer-events-none"></div>
         <div className="absolute -left-10 -bottom-20 w-64 h-64 bg-skin-primary/10 rounded-full blur-3xl"></div>
@@ -90,13 +90,14 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
              <div className="flex gap-2">
                  {isCached && timestamp && (
                    <span className="text-[10px] text-skin-muted bg-black/40 px-2 py-1 rounded-md flex items-center gap-1 backdrop-blur-sm border border-white/5">
-                     <Clock size={10} /> {timeAgo(timestamp)}
+                     <Clock size={10} /> Data cached {timeAgo(timestamp)}
                    </span>
                  )}
              </div>
+             {/* UPDATED BUTTON TEXT */}
              <button onClick={handleRefresh} className="group flex items-center gap-2 bg-skin-primary/90 hover:bg-skin-primary text-white pl-3 pr-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-lg active:scale-95">
                <RefreshCw size={14} className={`transition-transform ${clanLoading ? "animate-spin" : "group-hover:rotate-180"}`} />
-               {clanLoading ? "Updating..." : "Update"}
+               {clanLoading ? "Reloading..." : "Reload Clan Data"}
              </button>
         </div>
 
@@ -169,7 +170,7 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
         ))}
       </div>
 
-      {/* --- OVERVIEW TAB (Maintained) --- */}
+      {/* --- OVERVIEW TAB --- */}
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
            <div className="bg-skin-surface border border-skin-primary/10 rounded-xl p-5 shadow-lg relative overflow-hidden group">
@@ -217,7 +218,7 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
         </div>
       )}
 
-      {/* --- MEMBERS TAB (Maintained) --- */}
+      {/* --- MEMBERS TAB --- */}
       {activeTab === 'members' && (
         <div className="flex flex-col gap-2">
             <div className="hidden md:flex px-4 py-2 text-[10px] uppercase font-bold text-skin-muted tracking-widest">
@@ -293,7 +294,7 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
         </div>
       )}
 
-      {/* --- WAR TAB (Visual Upgrade) --- */}
+      {/* --- WAR TAB --- */}
       {activeTab === 'war' && (
          <div className="min-h-[300px] space-y-4">
             {warLoading && <SkeletonLoader />}
@@ -331,30 +332,27 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
                     </div>
                 </div>
                 
-                {/* Actual Map Component */}
                 <WarMap data={warData} />
                 </>
             )}
          </div>
       )}
 
-      {/* --- RAIDS TAB (Bug Fix applied in Component) --- */}
+      {/* --- RAIDS TAB --- */}
       {activeTab === 'raids' && (
         <div className="min-h-[300px]">
           {raidLoading && <SkeletonLoader />}
           {!raidLoading && !raidData && <div className="text-center py-10 opacity-50 font-clash">No Raid Seasons found.</div>}
-          {/* Ensure date parsing handles API format inside this component */}
           {!raidLoading && raidData && <CapitalRaidSection seasons={raidData.items} />}
         </div>
       )}
 
-      {/* --- CWL TAB (Interactive League Table) --- */}
+      {/* --- CWL TAB --- */}
       {activeTab === 'cwl' && (
         <div className="bg-[#1a232e] border border-skin-secondary/20 rounded-xl overflow-hidden min-h-[200px]">
            {!cwlLoading && !cwl && <div className="text-center py-10 opacity-50"><Globe size={32} className="mx-auto mb-2"/><p>No Active CWL Group</p></div>}
            {!cwlLoading && cwl && (
              <div className="p-4 md:p-6">
-                {/* CWL Header */}
                 <div className="flex flex-col md:flex-row justify-between items-center mb-6 border-b border-white/5 pb-4 gap-4">
                   <div>
                     <h3 className="text-2xl font-clash text-white flex items-center gap-2"><Swords className="text-red-500"/> {cwl.season}</h3>
@@ -365,7 +363,6 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
                   </span>
                 </div>
 
-                {/* Interactive Clan Grid */}
                 <div className="grid grid-cols-1 gap-2">
                   <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 text-[10px] uppercase font-bold text-skin-muted tracking-widest">
                       <div className="col-span-6">Clan</div>
@@ -383,7 +380,6 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
                                 : 'bg-black/20 border-white/5 hover:bg-white/5 hover:border-skin-secondary/50'
                             }`}
                     >
-                       {/* Clan Info */}
                        <div className="col-span-8 md:col-span-6 flex items-center gap-3">
                           <span className="text-skin-muted font-mono text-xs w-4">{idx + 1}</span>
                           <img src={c.badgeUrls.small} alt="" className="w-10 h-10 object-contain drop-shadow-md group-hover:scale-110 transition-transform"/>
@@ -393,12 +389,10 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
                           </div>
                        </div>
 
-                       {/* Level */}
                        <div className="col-span-2 hidden md:block text-center">
                            <span className="bg-black/40 px-2 py-1 rounded text-xs font-bold text-white border border-white/10">{c.clanLevel}</span>
                        </div>
 
-                       {/* Action */}
                        <div className="col-span-4 md:col-span-4 flex items-center justify-end gap-2 text-skin-muted group-hover:text-white transition-colors">
                            <span className="text-xs hidden md:inline">View Clan</span>
                            <ChevronRight size={16} />
