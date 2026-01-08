@@ -3,7 +3,8 @@
 import { useClashData } from "@/hooks/useClashData";
 import { getUnitIconPath, UNIT_CATEGORIES, getUnitCategory } from "@/lib/unitHelpers";
 import { timeAgo, saveToHistory, toggleFavorite, isFavorite } from "@/lib/utils";
-import { ArrowLeft, RefreshCw, Shield, Sword, Swords, Zap, Clock, Star, Share2, ShieldPlus, Inbox, Crown, Medal, Trophy, AlertCircle } from "lucide-react";
+// FIX: Added 'Home' back to imports
+import { ArrowLeft, RefreshCw, Shield, Sword, Swords, Zap, Clock, Star, Share2, ShieldPlus, Inbox, Crown, Medal, Trophy, AlertCircle, Home } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import SkeletonLoader from "@/components/SkeletonLoader";
@@ -48,7 +49,6 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
   const [isFav, setIsFav] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   
-  // NOTE: Builder Base logic removed as per request
   const { data: player, loading, isCached, timestamp, refresh } = useClashData<PlayerData>(`player_${tag}`, `/players/${tag}`);
 
   useEffect(() => {
@@ -69,7 +69,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
   if (loading) return <SkeletonLoader />;
   if (!player) return <div className="p-10 text-center font-clash text-xl text-skin-muted">Player not found.</div>;
 
-  // --- DATA SORTING (Home Village Only) ---
+  // --- DATA SORTING ---
   const homeHeroes = player.heroes.filter(h => h.village === 'home');
   const pets = player.troops.filter(t => UNIT_CATEGORIES.pets.includes(t.name));
   const allHomeTroops = player.troops.filter(t => t.village === 'home' && !UNIT_CATEGORIES.pets.includes(t.name));
@@ -94,19 +94,17 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
     </h3>
   );
 
-  // --- UNIT CARD COMPONENT (Fixed Layout & Animation) ---
+  // --- UNIT CARD COMPONENT ---
   const UnitCard = ({ unit, type }: { unit: Unit, type: string }) => {
     const iconPath = getUnitIconPath(unit.name);
     const isMax = unit.level === unit.maxLevel;
     const isSpecial = type === 'Hero' || type === 'Pet';
     
-    // Fallback Icon Selection
-    let FallbackIcon = Shield; // Default
+    let FallbackIcon = Shield;
     if (type === 'Troop') FallbackIcon = Sword;
     if (type === 'Spell') FallbackIcon = Zap;
     if (type === 'Hero') FallbackIcon = Crown;
     
-    // Tilt wrapper only for special units to save performance/visual noise
     const Wrapper = isSpecial ? TiltWrapper : React.Fragment;
     const wrapperProps = isSpecial ? { isMax } as any : {};
 
@@ -117,10 +115,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
             ? 'bg-gradient-to-b from-[#2a3a4b] to-[#1a232e] border-skin-primary/40 shadow-[0_0_10px_-5px_var(--color-primary)]' 
             : 'bg-[#2a3a4b] border-white/5 hover:border-skin-primary/30'}`}
         >
-           {/* Icon Container with Fire Effect */}
            <div className="relative w-12 h-12 md:w-14 md:h-14 shrink-0 flex items-center justify-center p-1 mb-1">
-             
-             {/* MAX LEVEL FIRE ANIMATION */}
              {isMax && (
                <div className="absolute inset-[-4px] rounded-full overflow-hidden z-0">
                   <div className="absolute inset-[-50%] bg-[conic-gradient(transparent,var(--color-primary),transparent_30%)] animate-spin-slow blur-sm opacity-100"></div>
@@ -128,7 +123,6 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
                </div>
              )}
 
-             {/* Unit Image */}
              <div className="relative z-10 w-full h-full">
                 <img 
                   src={iconPath} 
@@ -136,22 +130,18 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
                   alt={unit.name} 
                   className={`w-full h-full object-contain drop-shadow-xl transition-transform group-hover:scale-110 ${isMax ? 'brightness-110' : ''}`}
                 />
-                {/* Fallback Icon (Hidden by default, shown on error) */}
                 <div className="hidden w-full h-full flex items-center justify-center">
                    <FallbackIcon size={24} className="text-skin-muted opacity-50"/>
                 </div>
              </div>
 
-             {/* Max Badge (Overlay) */}
              {isMax && <div className="absolute -bottom-1 -right-1 bg-skin-primary text-black text-[7px] font-black px-1 rounded shadow-sm z-20">MAX</div>}
            </div>
 
-           {/* Name (Truncated if too long) */}
            <div className="text-[10px] font-bold text-skin-text text-center w-full truncate px-1 leading-tight">
              {unit.name}
            </div>
 
-           {/* Level Badge (Anchored to bottom) */}
            <div className="w-full mt-auto pt-1">
               <div className={`text-[9px] text-center font-bold py-0.5 rounded-sm border truncate ${isMax ? 'bg-skin-primary text-black border-skin-primary' : 'bg-black/40 text-skin-muted border-white/5'}`}>
                  Lvl {unit.level}
@@ -170,7 +160,6 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
            <Link href="/" className="text-skin-muted text-xs flex items-center gap-1 hover:text-skin-primary"><ArrowLeft size={14}/> Back</Link>
            <div className="flex items-center gap-2">
              {isCached && timestamp && (
-                 // SHORTENED TEXT for Mobile
                  <span className="text-[10px] text-skin-muted flex items-center gap-1 bg-black/20 px-2 py-0.5 rounded-full border border-white/5">
                     <Clock size={10}/> Cached: {timeAgo(timestamp)}
                  </span>
@@ -260,7 +249,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
                             onError={(e) => { e.currentTarget.style.display = 'none'; }}
                             alt=""
                         />
-                        {/* Fallback for TH Image if missing */}
+                        {/* Correctly using the Home icon as fallback */}
                         <div className="absolute inset-0 flex items-center justify-center text-skin-muted opacity-20 -z-10"><Home size={32}/></div>
                         
                         {player.townHallWeaponLevel && (
@@ -308,7 +297,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
         </div>
       </div>
 
-      {/* --- UNIT SECTIONS (Home Village Only) --- */}
+      {/* --- UNIT SECTIONS --- */}
       <div className="space-y-8">
             {(homeHeroes.length > 0 || pets.length > 0) && (
                 <section>
