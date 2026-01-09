@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
             const cleanData = normalizeResponse(rawData);
             
             console.log(`[Proxy] Success. Normalized Keys: ${Object.keys(cleanData)}`);
-            if(cleanData.items) console.log(`[Proxy] Items found: ${cleanData.items.length}`);
+            if(cleanData.items) console.log(`[Proxy] Items found: ${cleanData.items.length}\n ${cleanData.items}`);
             
             return NextResponse.json(cleanData);
         } else {
