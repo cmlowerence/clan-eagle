@@ -18,9 +18,6 @@ interface ClanResult {
 
 export default function SearchPage() {
   const [term, setTerm] = useState("");
-  
-  // 1. SAFETY: We use <any> here locally. 
-  // This does NOT affect how the hook works in other files.
   const { data: results, loading, error, search } = useClashSearch<any>();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -29,9 +26,12 @@ export default function SearchPage() {
     search(`/clans?name=${encodeURIComponent(term)}&limit=20`);
   };
 
-  // 2. SAFETY: We safely check for .items inside this specific component only.
-  // Other pages using this hook for single clans won't be affected because they don't use this variable.
-  const list: ClanResult[] = (results as any)?.items || [];
+  // FIX: Handle the nested 'data.items' structure shown in your JSON
+  // We check both 'results.data.items' (your API) and 'results.items' (standard API) just in case.
+  const list: ClanResult[] = 
+    (results as any)?.data?.items || 
+    (results as any)?.items || 
+    [];
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 min-h-[80vh] px-4 pt-8">
@@ -74,7 +74,8 @@ export default function SearchPage() {
             </div>
          )}
 
-         {!loading && list.length === 0 && results && (
+         {/* Only show "No clans found" if we actually searched and got back empty list */}
+         {!loading && results && list.length === 0 && (
             <div className="text-center py-16 opacity-50 flex flex-col items-center gap-2">
                 <Shield size={40} className="text-skin-muted"/>
                 <p className="text-skin-muted">No clans found matching "{term}"</p>
