@@ -19,9 +19,8 @@ interface ClanResult {
 export default function SearchPage() {
   const [term, setTerm] = useState("");
   
-  // FIX: Use <any> to handle the API response flexibly.
-  // The API returns { items: [...] }, but the hook might expect an array.
-  // Using 'any' allows us to manually extract 'items' without TS errors.
+  // 1. SAFETY: We use <any> here locally. 
+  // This does NOT affect how the hook works in other files.
   const { data: results, loading, error, search } = useClashSearch<any>();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -30,9 +29,9 @@ export default function SearchPage() {
     search(`/clans?name=${encodeURIComponent(term)}&limit=20`);
   };
 
-  // FIX: Safely extract the array. 
-  // If 'results' is null, or doesn't have items, default to empty array.
-  const list: ClanResult[] = results?.items || [];
+  // 2. SAFETY: We safely check for .items inside this specific component only.
+  // Other pages using this hook for single clans won't be affected because they don't use this variable.
+  const list: ClanResult[] = (results as any)?.items || [];
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 min-h-[80vh] px-4 pt-8">
