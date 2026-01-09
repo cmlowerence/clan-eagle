@@ -1,15 +1,47 @@
 'use client';
 
-// ... (Imports remain the same)
-import { useState } from 'react';
-import { Shield, Sword, Lock, Plus, Check, LogOut, Loader2, Play, Eye } from "lucide-react";
+import { useState, useRef, useEffect } from 'react';
+import { Shield, Sword, Lock, Plus, Check, LogOut, Loader2, Play, Eye, ChevronDown, Castle, Link as LinkIcon, RefreshCw } from "lucide-react";
 import { addLayout, addStrategy, verifyAdmin } from "@/lib/actions";
 import { useRouter } from 'next/navigation';
-import UnitSelector from '@/components/admin/UnitSelector'; // Ensure this matches file location
-import { getUnitIconPath } from '@/lib/unitHelpers';
+import UnitSelector from '@/components/admin/UnitSelector';
+import { getUnitIconPath, UNIT_CATEGORIES } from "@/lib/unitHelpers";
+
+// --- COMPLETE CLASH OF CLANS ID MAP ---
+// Used to auto-generate deep links
+const UNIT_ID_MAP: Record<string, number> = {
+  // Elixir Troops
+  "Barbarian": 1, "Archer": 2, "Giant": 3, "Goblin": 4, "Wall Breaker": 5,
+  "Balloon": 6, "Wizard": 7, "Healer": 8, "Dragon": 9, "P.E.K.K.A": 10,
+  "Baby Dragon": 23, "Miner": 24, "Electro Dragon": 59, "Yeti": 53,
+  "Dragon Rider": 84, "Electro Titan": 95, "Root Rider": 110, 
+  "Electrofire Wizard": 111, "Druid": 112, "Thrower": 113,
+  
+  // Dark Troops
+  "Minion": 11, "Hog Rider": 12, "Valkyrie": 13, "Golem": 14, "Witch": 15,
+  "Lava Hound": 17, "Bowler": 22, "Ice Golem": 58, "Headhunter": 82,
+  "Apprentice Warden": 97, 
+  
+  // Super Troops (Using their base ID usually works, or specific Super IDs)
+  "Super Barbarian": 26, "Super Archer": 27, "Super Wall Breaker": 29, "Super Giant": 28,
+  "Sneaky Goblin": 55, "Rocket Balloon": 57, "Super Wizard": 83, "Super Dragon": 63,
+  "Inferno Dragon": 62, "Super Minion": 80, "Super Valkyrie": 64, "Super Witch": 66,
+  "Ice Hound": 76, "Super Bowler": 65, "Super Miner": 60, "Super Hog Rider": 61,
+
+  // Spells
+  "Lightning Spell": 1, "Healing Spell": 2, "Rage Spell": 3, "Jump Spell": 4,
+  "Freeze Spell": 5, "Clone Spell": 12, "Invisibility Spell": 35, "Recall Spell": 36,
+  "Revive Spell": 37, "Totem Spell": 38,
+  "Poison Spell": 9, "Earthquake Spell": 10, "Haste Spell": 11, "Skeleton Spell": 13,
+  "Bat Spell": 28, "Overgrowth Spell": 39,
+
+  // Sieges
+  "Wall Wrecker": 51, "Battle Blimp": 52, "Stone Slammer": 54, 
+  "Siege Barracks": 62, "Log Launcher": 75, "Flame Flinger": 91, 
+  "Battle Drill": 98, "Troop Launcher": 102
+};
 
 export default function AdminPanel() {
-  // ... (State logic same as before)
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [secret, setSecret] = useState('');
   const [activeTab, setActiveTab] = useState<'layout' | 'strategy'>('layout');
@@ -25,7 +57,65 @@ export default function AdminPanel() {
     armyComp: [] as { unit: string; count: number }[]
   });
 
-  const handleLogin = async () => { /* ... same ... */ 
+  // Custom Selector States
+  const [isTHDropdownOpen, setIsTHDropdownOpen] = useState(false);
+  const thDropdownRef = useRef<HTMLDivElement>(null);
+  const TOWN_HALLS = Array.from({ length: 17 }, (_, i) => 18 - i);
+
+  // Click Outside Handler
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (thDropdownRef.current && !thDropdownRef.current.contains(event.target as Node)) {
+        setIsTHDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // --- AUTO-GENERATE ARMY LINK ---
+  // This effect runs every time stratForm.armyComp changes
+  useEffect(() => {
+    if (stratForm.armyComp.length === 0) {
+        setStratForm(prev => ({ ...prev, armyLink: '' }));
+        return;
+    }
+
+    let troopsPart = "";
+    let spellsPart = "";
+
+    stratForm.armyComp.forEach(u => {
+      // Find ID in our map
+      const id = UNIT_ID_MAP[u.unit];
+      
+      // Determine if it's a spell (using your categories logic)
+      const isSpell = UNIT_CATEGORIES.elixirSpells.includes(u.unit) || UNIT_CATEGORIES.darkSpells.includes(u.unit);
+      
+      if (id) {
+          if (isSpell) {
+            spellsPart += `-${id}x${u.count}`;
+          } else {
+            troopsPart += `-${id}x${u.count}`;
+          }
+      }
+    });
+
+    // Clean up strings (remove leading dashes)
+    if (troopsPart.startsWith('-')) troopsPart = troopsPart.substring(1);
+    if (spellsPart.startsWith('-')) spellsPart = spellsPart.substring(1);
+
+    // Construct the final URL
+    const link = `https://link.clashofclans.com/en?action=OpenArmy&troops=${troopsPart}&spells=${spellsPart}`;
+    
+    // Update state only if changed to prevent infinite loops
+    setStratForm(prev => {
+        if (prev.armyLink !== link) return { ...prev, armyLink: link };
+        return prev;
+    });
+    
+  }, [stratForm.armyComp]);
+
+  const handleLogin = async () => {
     if (!secret) return;
     setLoginLoading(true);
     try {
@@ -35,27 +125,27 @@ export default function AdminPanel() {
     } catch (error) { alert("Login failed."); }
     setLoginLoading(false);
   };
-  
-  const handleLogout = () => { /* ... same ... */ 
+
+  const handleLogout = () => {
     if (window.confirm("Are you sure you want to logout?")) {
         setIsAuthenticated(false);
         router.push('/');
     }
   };
 
-  const handleLayoutSubmit = async () => { /* ... same ... */ 
+  const handleLayoutSubmit = async () => {
     if(!layoutForm.title || !layoutForm.copyLink) return alert("Title and Link required");
     setLoading(true);
     try {
         await addLayout(layoutForm);
         setMessage('✅ Layout Added!');
-        setLayoutForm({ title: '', townHall: 16, type: 'War', imageUrl: '', copyLink: '' });
+        setLayoutForm({ ...layoutForm, title: '', imageUrl: '', copyLink: '' });
         setTimeout(() => setMessage(''), 3000);
     } catch(e: any) { alert('Error: ' + e.message); }
     setLoading(false);
   };
 
-  const handleStratSubmit = async () => { /* ... same ... */ 
+  const handleStratSubmit = async () => {
     if(!stratForm.title || stratForm.armyComp.length === 0) return alert("Title and Army required");
     setLoading(true);
     try {
@@ -68,13 +158,48 @@ export default function AdminPanel() {
     setLoading(false);
   };
 
-  const getYoutubeId = (url: string) => { /* ... same ... */ 
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-  };
+  // --- CUSTOM TH SELECTOR COMPONENT ---
+  const THSelector = ({ value, onChange }: { value: number, onChange: (val: number) => void }) => (
+    <div className="relative w-full" ref={thDropdownRef}>
+        <button 
+            onClick={() => setIsTHDropdownOpen(!isTHDropdownOpen)}
+            className="w-full flex items-center justify-between bg-black/20 p-4 rounded-xl text-white border border-white/10 outline-none hover:bg-black/30 transition-all"
+        >
+            <div className="flex items-center gap-3">
+                <div className="relative w-8 h-8 flex items-center justify-center bg-[#0c1015] rounded border border-white/10 overflow-hidden">
+                     <Castle className="text-skin-muted opacity-30 w-5 h-5" />
+                     <img 
+                        src={`/assets/icons/town_hall_${value}.png`} 
+                        alt={`TH${value}`} 
+                        className="absolute inset-0 w-full h-full object-contain"
+                        onError={(e) => e.currentTarget.style.display='none'}
+                    />
+                </div>
+                <span className="text-sm font-bold uppercase">Town Hall {value}</span>
+            </div>
+            <ChevronDown size={16} className={`text-skin-muted transition-transform ${isTHDropdownOpen ? 'rotate-180' : ''}`}/>
+        </button>
 
-  if (!isAuthenticated) { /* ... Login UI same ... */ 
+        {isTHDropdownOpen && (
+            <div className="absolute top-full mt-2 left-0 w-full max-h-60 overflow-y-auto bg-[#1f2937] border border-white/10 rounded-xl shadow-2xl z-50 custom-scrollbar animate-in fade-in zoom-in-95">
+                {TOWN_HALLS.map(th => (
+                    <button 
+                        key={th} 
+                        onClick={() => { onChange(th); setIsTHDropdownOpen(false); }}
+                        className={`w-full flex items-center gap-3 px-4 py-2 hover:bg-white/5 transition-colors text-left border-b border-white/5 last:border-0 ${value === th ? 'bg-skin-primary/10' : ''}`}
+                    >
+                        <div className="relative w-8 h-8 flex items-center justify-center bg-[#0c1015] rounded border border-white/10 overflow-hidden">
+                             <img src={`/assets/icons/town_hall_${th}.png`} alt={`TH${th}`} className="w-full h-full object-contain" onError={(e) => e.currentTarget.style.display='none'}/>
+                        </div>
+                        <span className={`text-sm font-bold uppercase ${value === th ? 'text-white' : 'text-skin-muted'}`}>Town Hall {th}</span>
+                    </button>
+                ))}
+            </div>
+        )}
+    </div>
+  );
+
+  if (!isAuthenticated) { /* Login Screen ... */ 
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
          <div className="bg-[#1f2937] p-8 rounded-xl border border-white/10 text-center space-y-4 w-full max-w-sm shadow-2xl relative overflow-hidden">
@@ -113,14 +238,16 @@ export default function AdminPanel() {
             <div className="bg-[#1f2937] p-6 rounded-2xl border border-white/5 space-y-5 shadow-xl">
                 <h3 className="text-sm font-bold text-skin-muted uppercase border-b border-white/5 pb-2">Layout Details</h3>
                 <input value={layoutForm.title} onChange={e => setLayoutForm({...layoutForm, title: e.target.value})} placeholder="Base Title" className="admin-input"/>
-                <div className="flex gap-4">
-                    <select value={layoutForm.townHall} onChange={e => setLayoutForm({...layoutForm, townHall: parseInt(e.target.value)})} className="admin-select">
-                        {[17,16,15,14,13,12,11,10,9].map(n => <option key={n} value={n}>TH {n}</option>)}
-                    </select>
+                
+                <div className="flex flex-col md:flex-row gap-4">
+                    {/* CUSTOM TH DROPDOWN */}
+                    <THSelector value={layoutForm.townHall} onChange={(val) => setLayoutForm({...layoutForm, townHall: val})} />
+                    
                     <select value={layoutForm.type} onChange={e => setLayoutForm({...layoutForm, type: e.target.value})} className="admin-select">
                         <option value="War">War</option><option value="Farm">Farm</option><option value="Troll">Troll</option>
                     </select>
                 </div>
+
                 <input value={layoutForm.imageUrl} onChange={e => setLayoutForm({...layoutForm, imageUrl: e.target.value})} placeholder="Image URL" className="admin-input"/>
                 <input value={layoutForm.copyLink} onChange={e => setLayoutForm({...layoutForm, copyLink: e.target.value})} placeholder="Clash Copy Link" className="admin-input"/>
             </div>
@@ -139,7 +266,6 @@ export default function AdminPanel() {
                 </div>
             </div>
 
-            {/* SAVE BUTTON AT BOTTOM */}
             <button onClick={handleLayoutSubmit} disabled={loading} className="admin-btn-primary mt-4">
                 {loading ? <Loader2 size={20} className="animate-spin"/> : <><Plus size={20}/> Save Layout</>}
             </button>
@@ -154,18 +280,35 @@ export default function AdminPanel() {
                 <input value={stratForm.title} onChange={e => setStratForm({...stratForm, title: e.target.value})} placeholder="Strategy Name" className="admin-input"/>
                 <textarea value={stratForm.description} onChange={e => setStratForm({...stratForm, description: e.target.value})} placeholder="Guide Description..." className="admin-input min-h-[80px]"/>
                 
-                <div className="flex gap-4">
+                <div className="flex flex-col md:flex-row gap-4">
                     <select value={stratForm.difficulty} onChange={e => setStratForm({...stratForm, difficulty: e.target.value})} className="admin-select">
                         <option value="Easy">Easy</option><option value="Medium">Medium</option><option value="Pro">Pro</option>
                     </select>
+                    {/* TH Input */}
                     <input value={stratForm.thInput} onChange={e => setStratForm({...stratForm, thInput: e.target.value})} placeholder="TH Levels (e.g. 15, 16)" className="admin-input"/>
                 </div>
 
                 {/* UNIT SELECTOR */}
-                <UnitSelector army={stratForm.armyComp} setArmy={(army) => setStratForm({...stratForm, armyComp: army})} filterTH={parseInt(stratForm.thInput.split(',')[0] || '16')} />
+                <UnitSelector 
+                    army={stratForm.armyComp} 
+                    setArmy={(army) => setStratForm({...stratForm, armyComp: army})} 
+                    filterTH={parseInt(stratForm.thInput.split(',')[0] || '16')} 
+                />
 
                 <input value={stratForm.videoUrl} onChange={e => setStratForm({...stratForm, videoUrl: e.target.value})} placeholder="YouTube URL" className="admin-input"/>
-                <input value={stratForm.armyLink} onChange={e => setStratForm({...stratForm, armyLink: e.target.value})} placeholder="Army Link" className="admin-input"/>
+                
+                {/* AUTO-GENERATED LINK (Read Only for verification) */}
+                <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <LinkIcon size={14} className="text-skin-muted"/>
+                    </div>
+                    <input 
+                        value={stratForm.armyLink} 
+                        readOnly 
+                        placeholder="Link auto-generated..." 
+                        className="admin-input pl-10 text-xs text-skin-muted cursor-not-allowed opacity-80"
+                    />
+                </div>
             </div>
 
             {/* PREVIEW */}
@@ -175,7 +318,6 @@ export default function AdminPanel() {
                     <div className="flex justify-between items-start mb-2">
                         <h3 className="font-bold text-white text-lg">{stratForm.title || "Strategy Title"}</h3>
                     </div>
-                    {/* Army Preview */}
                     <div className="bg-[#131b24] p-3 rounded-xl border border-white/5 flex flex-wrap gap-1">
                         {stratForm.armyComp.map((u, i) => (
                             <div key={i} className="relative w-8 h-8 bg-[#2a3a4b] rounded border border-white/10">
@@ -187,7 +329,6 @@ export default function AdminPanel() {
                 </div>
             </div>
 
-            {/* SAVE BUTTON AT BOTTOM */}
             <button onClick={handleStratSubmit} disabled={loading} className="bg-skin-secondary text-black w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:brightness-110 transition-all shadow-lg active:scale-95">
                 {loading ? <Loader2 size={20} className="animate-spin"/> : <><Plus size={20}/> Save Strategy</>}
             </button>
