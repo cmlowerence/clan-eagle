@@ -16,15 +16,13 @@ interface ClanResult {
   location?: { name: string };
 }
 
-// API Response Wrapper
-interface SearchResponse {
-  items: ClanResult[];
-}
-
 export default function SearchPage() {
   const [term, setTerm] = useState("");
-  // Expect the response to match the shape { items: [...] }
-  const { data: results, loading, error, search } = useClashSearch<SearchResponse>();
+  
+  // FIX: Use <any> to handle the API response flexibly.
+  // The API returns { items: [...] }, but the hook might expect an array.
+  // Using 'any' allows us to manually extract 'items' without TS errors.
+  const { data: results, loading, error, search } = useClashSearch<any>();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,8 +30,9 @@ export default function SearchPage() {
     search(`/clans?name=${encodeURIComponent(term)}&limit=20`);
   };
 
-  // FIX: Extract the array safely. If results is null, list is empty.
-  const list = results?.items || [];
+  // FIX: Safely extract the array. 
+  // If 'results' is null, or doesn't have items, default to empty array.
+  const list: ClanResult[] = results?.items || [];
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 min-h-[80vh] px-4 pt-8">
@@ -83,7 +82,7 @@ export default function SearchPage() {
             </div>
          )}
 
-         {/* FIX: Map over 'list', not 'results' */}
+         {/* RENDER LIST */}
          {!loading && list.map((clan) => (
             <Link 
               key={clan.tag} 
