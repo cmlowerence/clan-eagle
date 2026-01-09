@@ -34,3 +34,30 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-primary);
 }
+
+@layer components {
+  .admin-input {
+    @apply w-full bg-black/20 p-4 rounded-xl text-white border border-white/10 outline-none focus:border-skin-primary transition-colors text-sm font-medium;
+  }
+  .admin-select {
+    @apply w-full bg-black/20 p-4 rounded-xl text-white border border-white/10 outline-none cursor-pointer appearance-none;
+  }
+  .admin-btn-primary {
+    @apply bg-skin-primary text-black w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:brightness-110 transition-all shadow-lg active:scale-95;
+  }
+  
+  /* Custom Scrollbar for Unit Selector */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.1);
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.2);
+  }
+}
