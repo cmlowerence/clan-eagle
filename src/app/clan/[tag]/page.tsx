@@ -1,4 +1,4 @@
- 'use client';
+'use client';
 
 import { useClashData } from "@/hooks/useClashData";
 import { timeAgo, saveToHistory } from "@/lib/utils";
@@ -8,6 +8,8 @@ import { useState, useEffect } from "react";
 import SkeletonLoader from "@/components/SkeletonLoader";
 import WarMap, { WarData } from "@/components/WarMap";
 import CapitalRaidSection, { RaidSeason } from "@/components/CapitalRaidSection";
+// NEW: Import the WarLog component
+import WarLog from "@/components/WarLog";
 
 // --- Interfaces ---
 interface ClanMember {
@@ -94,7 +96,6 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
                    </span>
                  )}
              </div>
-             {/* UPDATED BUTTON TEXT */}
              <button onClick={handleRefresh} className="group flex items-center gap-2 bg-skin-primary/90 hover:bg-skin-primary text-white pl-3 pr-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-lg active:scale-95">
                <RefreshCw size={14} className={`transition-transform ${clanLoading ? "animate-spin" : "group-hover:rotate-180"}`} />
                {clanLoading ? "Reloading..." : "Reload Clan Data"}
@@ -296,7 +297,9 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
 
       {/* --- WAR TAB --- */}
       {activeTab === 'war' && (
-         <div className="min-h-[300px] space-y-4">
+         <div className="min-h-[300px] space-y-6">
+            
+            {/* 1. CURRENT WAR STATUS */}
             {warLoading && <SkeletonLoader />}
             {!warLoading && !warData && <div className="text-center py-10 opacity-50 font-clash">No active war data found.<br/><span className="text-xs font-sans text-skin-muted">(Or Clan War League is active)</span></div>}
             
@@ -332,9 +335,15 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
                     </div>
                 </div>
                 
+                {/* Live War Map */}
                 <WarMap data={warData} />
                 </>
             )}
+
+            {/* 2. WAR HISTORY LOG (New Feature) */}
+            <div className="pt-6 border-t border-white/10">
+                <WarLog clanTag={clan.tag.replace('#', '')} />
+            </div>
          </div>
       )}
 
