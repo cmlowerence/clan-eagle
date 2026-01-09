@@ -1,11 +1,12 @@
 'use client';
 
 import { useClashSearch } from "@/hooks/useClashSearch";
-import { Search, Users, Trophy, MapPin, ArrowRight, Loader2, Shield } from "lucide-react";
+import { Search, Users, Shield, Trophy, MapPin, ArrowRight, Loader2, ArrowLeft, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import SkeletonLoader from "@/components/SkeletonLoader";
 
+// --- TYPES ---
 interface ClanResult {
   tag: string;
   name: string;
@@ -16,28 +17,70 @@ interface ClanResult {
   location?: { name: string };
 }
 
+// --- SUB-COMPONENT: CLAN BADGE WITH PLACEHOLDER ---
+// Handles the loading state of the image elegantly
+const ClanBadge = ({ url, level }: { url?: string, level: number }) => {
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
+
+  return (
+    <div className="w-14 h-14 relative shrink-0">
+      {/* Real Image */}
+      {!imgError && url && (
+        <img 
+          src={url} 
+          className={`w-full h-full object-contain drop-shadow-md transition-opacity duration-500 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`} 
+          alt="Badge"
+          onLoad={() => setImgLoaded(true)}
+          onError={() => setImgError(true)}
+        />
+      )}
+
+      {/* Placeholder (Visible while loading or on error) */}
+      {(!imgLoaded || imgError) && (
+         <div className="absolute inset-0 flex items-center justify-center bg-[#0c1015] rounded-full border border-white/5 animate-pulse">
+            <Shield size={24} className="text-skin-muted opacity-30" />
+         </div>
+      )}
+
+      {/* Level Tag */}
+      <div className="absolute -bottom-1 -right-1 bg-black text-white text-[10px] px-1.5 py-0.5 rounded border border-white/10 font-bold shadow-sm z-10">
+        Lvl {level}
+      </div>
+    </div>
+  );
+};
+
+// --- MAIN PAGE ---
 export default function SearchPage() {
   const [term, setTerm] = useState("");
-  
-  // Hook now returns ClanResult[] directly (or null)
-  const { data: results, loading, error, search } = useClashSearch<ClanResult>();
+  const { data: results, loading, error, hasMore, search } = useClashSearch<ClanResult>();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (term.length < 3) return;
-    search(`/clans?name=${encodeURIComponent(term)}&limit=20`);
+    // Trigger New Search (True)
+    search(`/clans?name=${encodeURIComponent(term)}&limit=10`, true);
   };
 
-  // Safe fallback if results is null
-  const list = results || [];
+  const handleLoadMore = () => {
+    // Trigger Load More (False)
+    search("", false);
+  };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 min-h-[80vh] px-4 pt-8">
-      <div className="text-center space-y-2">
+    <div className="max-w-4xl mx-auto space-y-8 min-h-[80vh] px-4 pt-8 pb-20 relative">
+      
+      {/* HEADER WITH BACK BUTTON */}
+      <div className="relative text-center space-y-2">
+        <Link href="/" className="absolute left-0 top-1/2 -translate-y-1/2 p-2 bg-white/5 hover:bg-white/10 text-skin-muted hover:text-white rounded-xl transition-colors group">
+            <ArrowLeft size={24} className="group-hover:-translate-x-1 transition-transform"/>
+        </Link>
         <h1 className="text-3xl md:text-5xl font-clash text-white uppercase tracking-wide">Find a Clan</h1>
         <p className="text-skin-muted text-sm">Search by name (min 3 chars)</p>
       </div>
 
+      {/* SEARCH BAR */}
       <form onSubmit={handleSubmit} className="relative group max-w-lg mx-auto z-10">
           <div className="absolute -inset-1 bg-gradient-to-r from-skin-primary to-skin-secondary rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
           <div className="relative flex bg-[#1f2937] rounded-xl overflow-hidden border border-white/10 p-1">
@@ -48,30 +91,41 @@ export default function SearchPage() {
               placeholder="e.g. The Unbeatables" 
               className="w-full bg-transparent px-4 py-3 focus:outline-none text-white font-bold placeholder:text-skin-muted/50" 
             />
-            <button type="submit" disabled={loading || term.length < 3} className="bg-skin-primary text-black px-6 rounded-lg font-clash hover:bg-skin-secondary transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-               {loading ? <Loader2 size={20} className="animate-spin"/> : <Search size={20}/>}
+            <button type="submit" disabled={loading && results.length === 0} className="bg-skin-primary text-black px-6 rounded-lg font-clash hover:bg-skin-secondary transition-colors flex items-center gap-2 disabled:opacity-50">
+               {loading && results.length === 0 ? <Loader2 size={20} className="animate-spin"/> : <Search size={20}/>}
             </button>
           </div>
       </form>
 
+      {/* RESULTS LIST */}
       <div className="space-y-3">
          {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-center">{error}</div>}
          
-         {loading && <div className="space-y-3"><SkeletonLoader /><SkeletonLoader /></div>}
+         {results.length === 0 && loading && (
+            <div className="space-y-3">
+                <SkeletonLoader />
+                <SkeletonLoader />
+            </div>
+         )}
 
-         {!loading && results && list.length === 0 && (
+         {/* Empty State */}
+         {!loading && results.length === 0 && term.length > 2 && (
             <div className="text-center py-16 opacity-50 flex flex-col items-center gap-2">
                 <Shield size={40} className="text-skin-muted"/>
                 <p className="text-skin-muted">No clans found matching "{term}"</p>
             </div>
          )}
 
-         {!loading && list.map((clan) => (
-            <Link key={clan.tag} href={`/clan/${encodeURIComponent(clan.tag)}`} className="flex items-center gap-4 bg-[#1f2937] p-4 rounded-xl border border-white/5 hover:border-skin-primary/50 hover:bg-[#253041] transition-all group shadow-md">
-               <div className="w-14 h-14 relative shrink-0">
-                  <img src={clan.badgeUrls?.small} className="w-full h-full object-contain drop-shadow-md" alt="" />
-                  <div className="absolute -bottom-1 -right-1 bg-black text-white text-[10px] px-1.5 py-0.5 rounded border border-white/10 font-bold">Lvl {clan.clanLevel}</div>
-               </div>
+         {/* Render Results */}
+         {results.map((clan) => (
+            <Link 
+              key={clan.tag} 
+              href={`/clan/${encodeURIComponent(clan.tag)}`}
+              className="flex items-center gap-4 bg-[#1f2937] p-4 rounded-xl border border-white/5 hover:border-skin-primary/50 hover:bg-[#253041] transition-all group shadow-md animate-in fade-in slide-in-from-bottom-2"
+            >
+               {/* New Custom Badge Component */}
+               <ClanBadge url={clan.badgeUrls?.small} level={clan.clanLevel} />
+
                <div className="flex-1 min-w-0">
                   <h4 className="font-bold text-white text-lg truncate group-hover:text-skin-primary transition-colors">{clan.name}</h4>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-skin-muted mt-1">
@@ -80,9 +134,24 @@ export default function SearchPage() {
                      {clan.location && <span className="flex items-center gap-1 bg-black/20 px-2 py-0.5 rounded"><MapPin size={12}/> {clan.location.name}</span>}
                   </div>
                </div>
+
                <ArrowRight size={20} className="text-skin-muted opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all"/>
             </Link>
          ))}
+
+         {/* LOAD MORE BUTTON */}
+         {hasMore && (
+            <div className="pt-4 flex justify-center">
+                <button 
+                    onClick={handleLoadMore} 
+                    disabled={loading}
+                    className="flex items-center gap-2 px-6 py-3 bg-[#1f2937] hover:bg-white/5 border border-white/10 rounded-xl text-skin-muted hover:text-white transition-all disabled:opacity-50"
+                >
+                    {loading ? <Loader2 size={16} className="animate-spin"/> : <ChevronDown size={16} />}
+                    {loading ? "Loading..." : "Load More Clans"}
+                </button>
+            </div>
+         )}
       </div>
     </div>
   );

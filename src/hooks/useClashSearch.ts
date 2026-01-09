@@ -1,63 +1,89 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
-export function useClashSearch<T>() {
-  const [data, setData] = useState<T[] | null>(null);
+interface Pagination {
+  cursors?: {
+    after?: string;
+    before?: string;
+  };
+}
+
+export function useClashSearch<T extends { tag: string }>() {
+  const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
 
-  const search = async (endpoint: string) => {
+  // We store the last endpoint to append the cursor to it
+  const [lastEndpoint, setLastEndpoint] = useState<string>("");
+
+  const search = useCallback(async (endpoint: string, isNewSearch = true) => {
+    if (loading) return; // Prevent double fetch
     setLoading(true);
-    setError(null);
-    try {
-      const proxyUrl = `/api/proxy?endpoint=${encodeURIComponent(endpoint)}`;
-      console.log(`[Hook] Requesting: ${proxyUrl}`); // DEBUG LOG
+    if (isNewSearch) {
+      setError(null);
+      setData([]);
+      setNextCursor(null);
+      setLastEndpoint(endpoint);
+    }
 
-      const res = await fetch(proxyUrl);
-      
-      if (!res.ok) {
-        throw new Error(`Search failed: ${res.status}`);
+    try {
+      // Construct URL: If it's a "Load More" action, append the cursor
+      let url = isNewSearch ? endpoint : lastEndpoint;
+      if (!isNewSearch && nextCursor) {
+        // Append &after=CURSOR. Handle if URL already has query params (?)
+        const separator = url.includes('?') ? '&' : '?';
+        url = `${url}${separator}after=${encodeURIComponent(nextCursor)}`;
       }
+
+      console.log(`[Hook] Fetching: ${url}`);
+      const proxyUrl = `/api/proxy?endpoint=${encodeURIComponent(url)}`;
+      
+      const res = await fetch(proxyUrl);
+      if (!res.ok) throw new Error(`API Error: ${res.status}`);
 
       const json = await res.json();
       
-      // --- DEBUGGING: PRINT EXACT STRUCTURE ---
-      console.log("[Hook] Raw JSON from Server:", json);
-      // ----------------------------------------
+      // --- EXTRACTION LOGIC ---
+      let newItems: T[] = [];
+      let paging: Pagination | undefined;
 
-      // ROBUST EXTRACTION: Check all possible locations for the array
-      let extractedList: T[] = [];
-
-      if (Array.isArray(json)) {
-        // Case 1: It's already an array
-        console.log("[Hook] Detected direct Array");
-        extractedList = json;
+      // Check for nested wrapper { data: { items: [], paging: {} } }
+      if (json.data && Array.isArray(json.data.items)) {
+        newItems = json.data.items;
+        paging = json.data.paging;
       } 
+      // Check for standard API { items: [], paging: {} }
       else if (Array.isArray(json.items)) {
-        // Case 2: Standard API { items: [...] }
-        console.log("[Hook] Detected 'items' property");
-        extractedList = json.items;
-      } 
-      else if (json.data && Array.isArray(json.data.items)) {
-        // Case 3: Wrapper { data: { items: [...] } }
-        console.log("[Hook] Detected 'data.items' nested property");
-        extractedList = json.data.items;
-      } 
-      else {
-        console.warn("[Hook] Could not find array in response. Defaulting to empty.");
+        newItems = json.items;
+        paging = json.paging;
+      }
+      // Check for direct array (unlikely for search)
+      else if (Array.isArray(json)) {
+        newItems = json;
       }
 
-      setData(extractedList);
+      // --- DUPLICATE FILTERING ---
+      // We filter out items that are already in the 'data' state
+      setData(prev => {
+        const currentList = isNewSearch ? [] : prev;
+        const uniqueNewItems = newItems.filter(
+            newItem => !currentList.some(existing => existing.tag === newItem.tag)
+        );
+        return [...currentList, ...uniqueNewItems];
+      });
+
+      // Update Cursor
+      setNextCursor(paging?.cursors?.after || null);
 
     } catch (err: any) {
-      console.error("[Hook] Error:", err);
-      setError(err.message || "Failed to search");
-      setData([]);
+      console.error(err);
+      setError(err.message || "Failed to load results");
     } finally {
       setLoading(false);
     }
-  };
+  }, [nextCursor, lastEndpoint, loading]);
 
-  return { data, loading, error, search };
+  return { data, loading, error, hasMore: !!nextCursor, search };
 }
