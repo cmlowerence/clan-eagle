@@ -13,9 +13,6 @@ export async function GET(request: NextRequest) {
   const BACKEND_URL = 'https://coc-api-functional.onrender.com/api';
 
   // --- 1. SEARCH/FILTER OPTIMIZATION ---
-  // If the request contains '?', it is a search or list request (e.g. ?name=... or ?limit=...).
-  // These do not involve hashtags that need complex encoding variations.
-  // We fetch these DIRECTLY to avoid unnecessary 404 loops.
   if (endpoint.includes('?')) {
      try {
         const targetUrl = `${BACKEND_URL}${endpoint}`;
@@ -28,7 +25,6 @@ export async function GET(request: NextRequest) {
             cache: 'no-store',
         });
 
-        // Forward the exact status code from the backend
         if (res.ok) {
             const data = await res.json();
             return NextResponse.json(data);
@@ -43,19 +39,18 @@ export async function GET(request: NextRequest) {
      }
   }
 
-  // --- 2. TAG LOOKUP LOGIC (Legacy Support) ---
-  // For endpoints like /clans/#TAG or /players/#TAG.
-  // We try multiple variations to ensure the API accepts the tag format 
-  // (Raw #, Encoded %23, Double Encoded %2523, or No Hash).
+  // --- 2. TAG LOOKUP LOGIC ---
   const variations = [
     endpoint.replace(/#/g, '%23'),   // Standard Encoding
-    endpoint.replace(/#/g, '%2523'), // Double Encoding (fixes some proxies)
-    endpoint,                        // As-is (in case it's already correct)
-    endpoint.replace(/#/g, ''),      // No Hash (fallback)
+    endpoint.replace(/#/g, '%2523'), // Double Encoding
+    endpoint,                        // As-is
+    endpoint.replace(/#/g, ''),      // No Hash
   ];
 
-  // Remove duplicates to avoid calling the same URL multiple times
-  const uniqueVariations = [...new Set(variations)];
+  // FIX: Use filter instead of Set to remove duplicates (ES5 compatible)
+  const uniqueVariations = variations.filter((value, index, self) => {
+    return self.indexOf(value) === index;
+  });
 
   let lastErrorStr = '';
   let successfulData = null;
@@ -73,7 +68,7 @@ export async function GET(request: NextRequest) {
 
       if (res.ok) {
         successfulData = await res.json();
-        break; // Stop loop on first success
+        break; 
       } else {
         lastErrorStr = `Status ${res.status} on ${path}`;
       }
@@ -86,7 +81,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(successfulData);
   }
 
-  // If all variations fail
   return NextResponse.json(
     { error: 'Resource Not Found', debug: lastErrorStr },
     { status: 404 }
