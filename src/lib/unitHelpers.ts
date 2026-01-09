@@ -23,7 +23,7 @@ export const HOUSING_SPACE: Record<string, number> = {
 
   // Pets
   "L.A.S.S.I": 0, "Mighty Yak": 0, "Electro Owl": 0, "Unicorn": 0, "Diggy": 0, 
-  "Frosty": 0, "Phoenix": 0, "Poison Lizard": 0, "Spirit Fox": 0, "Angry Jelly": 0,
+  "Frosty": 0, "Phoenix": 0, "Poison Lizard": 0, "Spirit Fox": 0, "Angry Jelly": 0, " Sneezy": 0,
 
   // Spells
   "Lightning Spell": 1, "Healing Spell": 2, "Rage Spell": 2, "Jump Spell": 2,
@@ -113,7 +113,7 @@ const sieges = [
 
 const pets = [
   "L.A.S.S.I", "Mighty Yak", "Electro Owl", "Unicorn", "Diggy", "Frosty", 
-  "Phoenix", "Poison Lizard", "Spirit Fox", "Angry Jelly"
+  "Phoenix", "Poison Lizard", "Spirit Fox", "Angry Jelly", " Sneezy"
 ];
 
 export const UNIT_CATEGORIES = {
