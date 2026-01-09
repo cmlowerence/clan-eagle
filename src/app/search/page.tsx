@@ -18,18 +18,15 @@ interface ClanResult {
 
 export default function SearchPage() {
   const [term, setTerm] = useState("");
-  // We use <any> to accept the normalized response
-  const { data: results, loading, error, search } = useClashSearch<any>();
+  
+  // Hook now correctly returns ClanResult[] or null
+  const { data: results, loading, error, search } = useClashSearch<ClanResult>();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (term.length < 3) return;
     search(`/clans?name=${encodeURIComponent(term)}&limit=20`);
   };
-
-  // With the new Proxy, we can simply look for .items
-  // The 'as any' is a TypeScript safety hatch
-  const list: ClanResult[] = (results as any)?.items || [];
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 min-h-[80vh] px-4 pt-8">
@@ -72,28 +69,26 @@ export default function SearchPage() {
             </div>
          )}
 
-         {/* EMPTY STATE */}
-         {!loading && results && list.length === 0 && (
+         {/* Empty State */}
+         {!loading && results && results.length === 0 && (
             <div className="text-center py-16 opacity-50 flex flex-col items-center gap-2">
                 <Shield size={40} className="text-skin-muted"/>
                 <p className="text-skin-muted">No clans found matching "{term}"</p>
             </div>
          )}
 
-         {/* LIST */}
-         {!loading && list.map((clan) => (
+         {/* Results List - direct mapping over 'results' array */}
+         {!loading && results && results.map((clan) => (
             <Link 
               key={clan.tag} 
               href={`/clan/${encodeURIComponent(clan.tag)}`}
               className="flex items-center gap-4 bg-[#1f2937] p-4 rounded-xl border border-white/5 hover:border-skin-primary/50 hover:bg-[#253041] transition-all group shadow-md"
             >
-               {/* Badge */}
                <div className="w-14 h-14 relative shrink-0">
                   <img src={clan.badgeUrls?.small} className="w-full h-full object-contain drop-shadow-md" alt="" />
                   <div className="absolute -bottom-1 -right-1 bg-black text-white text-[10px] px-1.5 py-0.5 rounded border border-white/10 font-bold">Lvl {clan.clanLevel}</div>
                </div>
 
-               {/* Info */}
                <div className="flex-1 min-w-0">
                   <h4 className="font-bold text-white text-lg truncate group-hover:text-skin-primary transition-colors">{clan.name}</h4>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-skin-muted mt-1">
