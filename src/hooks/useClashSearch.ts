@@ -3,7 +3,6 @@
 import { useState } from 'react';
 
 export function useClashSearch<T>() {
-  // State holds an array of T (e.g. ClanResult[])
   const [data, setData] = useState<T[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -13,33 +12,46 @@ export function useClashSearch<T>() {
     setError(null);
     try {
       const proxyUrl = `/api/proxy?endpoint=${encodeURIComponent(endpoint)}`;
+      console.log(`[Hook] Requesting: ${proxyUrl}`); // DEBUG LOG
+
       const res = await fetch(proxyUrl);
       
-      if (!res.ok) throw new Error(`Search failed: ${res.status}`);
+      if (!res.ok) {
+        throw new Error(`Search failed: ${res.status}`);
+      }
 
       const json = await res.json();
       
-      // --- ROBUST EXTRACTION LOGIC ---
-      // Case A: Standard CoC API { items: [...] }
-      if (Array.isArray(json.items)) {
-        setData(json.items);
+      // --- DEBUGGING: PRINT EXACT STRUCTURE ---
+      console.log("[Hook] Raw JSON from Server:", json);
+      // ----------------------------------------
+
+      // ROBUST EXTRACTION: Check all possible locations for the array
+      let extractedList: T[] = [];
+
+      if (Array.isArray(json)) {
+        // Case 1: It's already an array
+        console.log("[Hook] Detected direct Array");
+        extractedList = json;
       } 
-      // Case B: Your Proxy Wrapper { data: { items: [...] } }
+      else if (Array.isArray(json.items)) {
+        // Case 2: Standard API { items: [...] }
+        console.log("[Hook] Detected 'items' property");
+        extractedList = json.items;
+      } 
       else if (json.data && Array.isArray(json.data.items)) {
-        setData(json.data.items);
+        // Case 3: Wrapper { data: { items: [...] } }
+        console.log("[Hook] Detected 'data.items' nested property");
+        extractedList = json.data.items;
       } 
-      // Case C: Direct Array [...]
-      else if (Array.isArray(json)) {
-        setData(json);
-      } 
-      // Case D: Fallback (empty)
       else {
-        console.warn("Unexpected API structure:", json);
-        setData([]);
+        console.warn("[Hook] Could not find array in response. Defaulting to empty.");
       }
 
+      setData(extractedList);
+
     } catch (err: any) {
-      console.error(err);
+      console.error("[Hook] Error:", err);
       setError(err.message || "Failed to search");
       setData([]);
     } finally {
