@@ -1,9 +1,11 @@
- import type { Metadata, Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Luckiest_Guy } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer"; // Import the Footer
 import Eruda from "@/components/Eruda";
+
 const inter = Inter({ 
   subsets: ["latin"], 
   variable: '--font-inter',
@@ -21,9 +23,9 @@ const clashFont = Luckiest_Guy({
 export const metadata: Metadata = {
   title: "Clan Eagle",
   description: "Advanced Clash of Clans Tracker & Army Planner",
-  manifest: "/manifest.json", // Link to manifest
+  manifest: "/manifest.json",
   icons: {
-    icon: "/assets/icons/electro_owl.png", // Static Electro Owl
+    icon: "/assets/icons/electro_owl.png", 
     apple: "/assets/icons/electro_owl.png",
   },
 };
@@ -47,19 +49,17 @@ export default function RootLayout({
         <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>
         
         <ThemeProvider>
-          {/* Removed FaviconManager for static icon */}
           <div className="relative z-10 flex flex-col min-h-screen">
             <Navbar />
             <main className="container mx-auto px-4 py-6 flex-1">
               {children}
             </main>
-            <footer className="border-t border-skin-primary/10 py-8 text-center mt-10">
-              <p className="text-skin-muted text-xs font-mono">
-                Clan Eagle &copy; 2026. Not affiliated with Supercell.
-              </p>
-            </footer>
+            {/* New Footer with Admin Access */}
+            <Footer />
           </div>
         </ThemeProvider>
+        
+        {/* Debugger */}
         <div className="fixed bottom-0 left-0 z-[9999]">
              <Eruda />
         </div>
