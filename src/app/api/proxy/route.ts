@@ -4,10 +4,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const endpoint = searchParams.get('endpoint'); // e.g., /clans?name=test
-
-  // DEBUG LOG 1: Check what the proxy received
-  console.log(`[Proxy] Incoming endpoint:`, endpoint);
+  const endpoint = searchParams.get('endpoint'); // e.g., /clans?name=...
 
   if (!endpoint) {
     return NextResponse.json({ error: 'Endpoint missing' }, { status: 400 });
@@ -15,13 +12,30 @@ export async function GET(request: NextRequest) {
 
   const BACKEND_URL = 'https://coc-api-functional.onrender.com/api';
 
-  // --- 1. SEARCH LOGIC ---
+  // --- HELPER: NORMALIZE DATA ---
+  // This flattens the weird nested structures from the API
+  const normalizeResponse = (data: any) => {
+    // Case 1: API returns { data: { items: [...] } } (Your observed structure)
+    if (data?.data?.items) {
+        return { items: data.data.items };
+    }
+    // Case 2: API returns { items: [...] } (Standard CoC API)
+    if (data?.items) {
+        return { items: data.items };
+    }
+    // Case 3: API returns direct Array [...]
+    if (Array.isArray(data)) {
+        return { items: data };
+    }
+    // Case 4: Single object (Profile lookup)
+    return data;
+  };
+
+  // --- 1. SEARCH REQUESTS (Contains '?') ---
   if (endpoint.includes('?')) {
      try {
         const targetUrl = `${BACKEND_URL}${endpoint}`;
-        
-        // DEBUG LOG 2: Check the final URL being hit
-        console.log(`[Proxy] Fetching Target (Search):`, targetUrl);
+        console.log(`[Proxy] Fetching: ${targetUrl}`);
 
         const res = await fetch(targetUrl, {
             headers: { 
@@ -31,16 +45,15 @@ export async function GET(request: NextRequest) {
             cache: 'no-store',
         });
 
-        // DEBUG LOG 3: Check response status
-        console.log(`[Proxy] Response Status:`, res.status);
-
         if (res.ok) {
-            const data = await res.json();
-            // DEBUG LOG 4: Check if data has items (print keys only to keep logs clean)
-            console.log(`[Proxy] Response Keys:`, Object.keys(data));
-            if (data.data) console.log(`[Proxy] Nested Data Keys:`, Object.keys(data.data));
+            const rawData = await res.json();
+            // NORMALIZE BEFORE SENDING
+            const cleanData = normalizeResponse(rawData);
             
-            return NextResponse.json(data);
+            console.log(`[Proxy] Success. Normalized Keys: ${Object.keys(cleanData)}`);
+            if(cleanData.items) console.log(`[Proxy] Items found: ${cleanData.items.length}`);
+            
+            return NextResponse.json(cleanData);
         } else {
             return NextResponse.json(
                 { error: `Backend API Error: ${res.status}` }, 
@@ -48,16 +61,11 @@ export async function GET(request: NextRequest) {
             );
         }
      } catch(e: any) {
-        console.error(`[Proxy] Fetch Error:`, e.message);
         return NextResponse.json({ error: e.message }, { status: 500 });
      }
   }
 
-  // --- 2. TAG LOGIC ---
-  // ... (Keep your existing tag logic here, omitted for brevity but keep it in your file) ...
-  // For debugging purposes, you can just paste the search part above first.
-  
-  // (Rest of the file remains same as previous working version)
+  // --- 2. TAG LOOKUP LOGIC ---
   const variations = [
     endpoint.replace(/#/g, '%23'),
     endpoint.replace(/#/g, '%2523'),
@@ -65,9 +73,8 @@ export async function GET(request: NextRequest) {
     endpoint.replace(/#/g, ''),
   ];
 
-  const uniqueVariations = variations.filter((value, index, self) => {
-    return self.indexOf(value) === index;
-  });
+  // Unique filter
+  const uniqueVariations = variations.filter((value, index, self) => self.indexOf(value) === index);
 
   let lastErrorStr = '';
   let successfulData = null;
@@ -92,7 +99,8 @@ export async function GET(request: NextRequest) {
   }
 
   if (successfulData) {
-    return NextResponse.json(successfulData);
+    // Normalize here too just in case
+    return NextResponse.json(normalizeResponse(successfulData));
   }
 
   return NextResponse.json(
