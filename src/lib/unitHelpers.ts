@@ -1,4 +1,4 @@
-import { Sword, Zap, Skull, Shield, Star, Ghost, Flame, Crosshair, Hexagon } from "lucide-react";
+import { Sword, Zap, Skull, Shield, Star, Ghost, Flame, Crosshair, Hexagon, Sparkles } from "lucide-react";
 
 // --- 1. Housing Space Constants ---
 export const HOUSING_SPACE: Record<string, number> = {
@@ -18,7 +18,12 @@ export const HOUSING_SPACE: Record<string, number> = {
   "Super Barbarian": 5, "Super Archer": 12, "Super Wall Breaker": 8,
   "Super Giant": 10, "Sneaky Goblin": 3, "Rocket Balloon": 8, "Super Wizard": 10,
   "Super Dragon": 40, "Inferno Dragon": 15, "Super Minion": 12, "Super Valkyrie": 20,
-  "Super Witch": 40, "Ice Hound": 40, "Super Bowler": 30, "Super Miner": 24, "Super Hog Rider": 12,
+  "Super Witch": 40, "Ice Hound": 40, "Super Bowler": 30, "Super Miner": 24, 
+  "Super Hog Rider": 12, "Super Yeti": 40,
+
+  // Pets
+  "L.A.S.S.I": 0, "Mighty Yak": 0, "Electro Owl": 0, "Unicorn": 0, "Diggy": 0, 
+  "Frosty": 0, "Phoenix": 0, "Poison Lizard": 0, "Spirit Fox": 0, "Angry Jelly": 0,
 
   // Spells
   "Lightning Spell": 1, "Healing Spell": 2, "Rage Spell": 2, "Jump Spell": 2,
@@ -46,11 +51,17 @@ export const UNIT_UNLOCKS: Record<string, number> = {
   "Lava Hound": 9, "Bowler": 10, "Ice Golem": 11, "Headhunter": 12,
   "Apprentice Warden": 13, "Furnace": 17,
   
-  // Super Troops
+  // Super Troops (Generally TH11+)
   "Super Barbarian": 11, "Super Archer": 11, "Super Wall Breaker": 11, "Super Giant": 11,
   "Sneaky Goblin": 11, "Rocket Balloon": 11, "Super Wizard": 11, "Super Dragon": 11,
   "Inferno Dragon": 11, "Super Minion": 11, "Super Valkyrie": 11, "Super Witch": 11,
-  "Ice Hound": 11, "Super Bowler": 11, "Super Miner": 11, "Super Hog Rider": 11,
+  "Ice Hound": 11, "Super Bowler": 11, "Super Miner": 11, "Super Hog Rider": 11, 
+  "Super Yeti": 12,
+
+  // Pets (TH14+)
+  "L.A.S.S.I": 14, "Mighty Yak": 14, "Electro Owl": 14, "Unicorn": 14,
+  "Diggy": 15, "Frosty": 15, "Phoenix": 15, "Poison Lizard": 15,
+  "Spirit Fox": 16, "Angry Jelly": 16,
 
   // Spells
   "Lightning Spell": 5, "Healing Spell": 6, "Rage Spell": 7, "Jump Spell": 9,
@@ -82,7 +93,7 @@ const superTroops = [
   "Super Barbarian", "Super Archer", "Super Wall Breaker", "Super Giant", 
   "Sneaky Goblin", "Super Miner", "Rocket Balloon", "Inferno Dragon", 
   "Super Valkyrie", "Super Witch", "Ice Hound", "Super Bowler", 
-  "Super Dragon", "Super Wizard", "Super Minion", "Super Hog Rider"
+  "Super Dragon", "Super Wizard", "Super Minion", "Super Hog Rider", "Super Yeti"
 ];
 
 const elixirSpells = [
@@ -112,7 +123,7 @@ export const UNIT_CATEGORIES = {
   spells: [...elixirSpells, ...darkSpells]
 };
 
-// --- 4. Town Hall Caps ---
+// --- 4. Town Hall Caps (Max Army Capacity) ---
 export const TH_CAPS: Record<number, { troops: number; spells: number; sieges: number }> = {
   1: { troops: 20, spells: 0, sieges: 0 },
   2: { troops: 30, spells: 0, sieges: 0 },
@@ -139,24 +150,31 @@ export const getUnlockLevel = (name: string) => UNIT_UNLOCKS[name] || 1;
 
 export const getUnitIconPath = (name: string) => {
   if (!name) return '/assets/icons/barbarian.png';
+  // Replaces spaces and dots with underscores for image filenames
   const slug = name.toLowerCase().replace(/\./g, "_").replace(/ /g, "_");
   return `/assets/icons/${slug}.png`;
 };
 
+// Determines the category string for a given unit name
 export const getUnitCategory = (name: string, isSpell = false) => {
   if (isSpell) return darkSpells.includes(name) ? 'Dark Spell' : 'Elixir Spell';
+  
+  // Order matters here to prevent overlapping matches
   if (pets.includes(name)) return 'Pet';
-  if (darkTroops.includes(name)) return 'Dark Troop';
   if (superTroops.includes(name)) return 'Super Troop';
+  if (darkTroops.includes(name)) return 'Dark Troop';
   if (sieges.includes(name)) return 'Siege Machine';
+  
+  // Default to Elixir Troop if found in list or unknown
   return 'Elixir Troop';
 };
 
+// Returns the Lucide icon associated with the category
 export const getCategoryIcon = (category: string) => {
   switch(category) {
     case 'Elixir Troop': return Sword; 
     case 'Dark Troop': return Skull;
-    case 'Super Troop': return Zap; 
+    case 'Super Troop': return Sparkles; // Specific icon for Super Troops
     case 'Pet': return Ghost;
     case 'Siege Machine': return Hexagon; 
     case 'Elixir Spell': return Flame;

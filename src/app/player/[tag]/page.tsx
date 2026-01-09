@@ -1,9 +1,9 @@
- 'use client';
+'use client';
 
 import { useClashData } from "@/hooks/useClashData";
 import { getUnitIconPath, UNIT_CATEGORIES, getUnitCategory } from "@/lib/unitHelpers";
 import { timeAgo, saveToHistory, toggleFavorite, isFavorite } from "@/lib/utils";
-import { ArrowLeft, RefreshCw, Shield, Sword, Home, Zap, Clock, Castle, Trophy, ChevronRight, Star, Share2 } from "lucide-react";
+import { ArrowLeft, RefreshCw, Shield, Sword, Home, Zap, Clock, Trophy, ChevronRight, Star, Share2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import SkeletonLoader from "@/components/SkeletonLoader";
@@ -61,16 +61,25 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
   if (loading) return <SkeletonLoader />;
   if (!player) return <div className="p-10 text-center font-clash text-xl text-skin-muted">Player not found.</div>;
 
+  // --- FILTERING LOGIC (Fixed) ---
   const homeHeroes = player.heroes.filter(h => h.village === 'home');
+  
+  // Pets: Must explicitly match the list to avoid "Sneezy" (Sneaky Goblin) or others mixing in
   const pets = player.troops.filter(t => UNIT_CATEGORIES.pets.includes(t.name));
-  const allHomeTroops = player.troops.filter(t => t.village === 'home' && !UNIT_CATEGORIES.pets.includes(t.name));
-  const elixirTroops = allHomeTroops.filter(t => getUnitCategory(t.name) === 'Elixir Troop');
-  const darkTroops = allHomeTroops.filter(t => getUnitCategory(t.name) === 'Dark Troop');
-  const siegeMachines = allHomeTroops.filter(t => getUnitCategory(t.name) === 'Siege Machine');
+  
+  // All other troops (exclude pets)
+  const allTroops = player.troops.filter(t => t.village === 'home' && !UNIT_CATEGORIES.pets.includes(t.name));
+  
+  // Categorize Troops
+  const elixirTroops = allTroops.filter(t => getUnitCategory(t.name) === 'Elixir Troop');
+  const darkTroops = allTroops.filter(t => getUnitCategory(t.name) === 'Dark Troop');
+  const superTroops = allTroops.filter(t => getUnitCategory(t.name) === 'Super Troop'); // NEW
+  const siegeMachines = allTroops.filter(t => getUnitCategory(t.name) === 'Siege Machine');
+  
   const elixirSpells = player.spells.filter(s => getUnitCategory(s.name, true) === 'Elixir Spell');
   const darkSpells = player.spells.filter(s => getUnitCategory(s.name, true) === 'Dark Spell');
 
-  // --- UNIT CARD (UPDATED: Fire only on Icon) ---
+  // --- UNIT CARD ---
   const UnitCard = ({ unit, type }: { unit: Unit, type: string }) => {
     const iconPath = getUnitIconPath(unit.name);
     const isMax = unit.level === unit.maxLevel;
@@ -78,20 +87,14 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
     const Wrapper = isSpecial ? TiltWrapper : React.Fragment;
     const wrapperProps = isSpecial ? { isMax } as any : {};
 
-    // 1. Define the Icon Container (Where the fire goes)
     const IconDisplay = (
       <div className="relative w-12 h-12 shrink-0">
          {isMax ? (
-           // --- FIRE EFFECT (ICON ONLY) ---
            <div className="absolute inset-[-4px] rounded-lg overflow-hidden z-0">
-              {/* Spinning Fire Gradient */}
               <div className="absolute inset-[-50%] bg-[conic-gradient(transparent,var(--color-primary),transparent_30%)] animate-spin-slow blur-sm opacity-100"></div>
-              {/* Inner Mask to create the "outline" look */}
               <div className="absolute inset-[2px] bg-skin-surface rounded-md"></div>
            </div>
          ) : null}
-
-         {/* The Actual Image (Sitting on top of fire) */}
          <div className="relative z-10 w-full h-full">
             <img 
               src={iconPath} 
@@ -99,10 +102,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
               alt={unit.name} 
               className={`object-contain w-full h-full drop-shadow-md transition-transform group-hover:scale-110 backface-hidden ${isMax ? 'brightness-110' : ''}`}
             />
-            {/* Fallback */}
             <div className="hidden absolute top-0 left-0 w-full h-full flex items-center justify-center text-skin-muted opacity-30"><Shield size={24} /></div>
-            
-            {/* Max Badge */}
             {isMax && <div className="absolute -bottom-2 -right-2 bg-skin-primary text-black text-[7px] font-black px-1.5 py-0.5 rounded shadow-sm border border-white/20 z-20 scale-90">MAX</div>}
          </div>
       </div>
@@ -139,7 +139,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
              </div>
         </div>
 
-        {/* PLAYER BANNER (Polished) */}
+        {/* PLAYER BANNER */}
         <div className="bg-skin-surface/90 backdrop-blur-md border border-skin-primary/20 rounded-2xl p-5 relative overflow-hidden shadow-2xl">
           <div className="absolute inset-0 bg-gradient-to-br from-skin-bg via-transparent to-skin-primary/5"></div>
           <div className="relative z-10 flex flex-col md:flex-row gap-6">
@@ -159,12 +159,10 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
                     <p className="text-skin-muted font-mono text-sm opacity-80">{player.tag}</p>
                 </div>
                 
-                {/* Stats & Timestamp Restored */}
                 <div className="flex flex-wrap items-center gap-2 mb-4">
                    <span className="bg-skin-bg text-skin-text text-[10px] font-bold uppercase px-2 py-1 rounded border border-skin-primary/20">{player.role}</span>
                    <span className="bg-skin-bg text-skin-secondary text-[10px] font-bold uppercase px-2 py-1 rounded border border-skin-secondary/20">Lvl {player.expLevel}</span>
                    
-                   {/* Restored Timestamp */}
                    {isCached && timestamp && (
                        <span className="bg-black/20 text-skin-muted text-[10px] px-2 py-1 rounded flex items-center gap-1 border border-white/5">
                          <Clock size={10}/> {timeAgo(timestamp)}
@@ -195,10 +193,73 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
         </div>
       </div>
 
-      {/* --- UNIT SECTIONS --- */}
-      <section><h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2"><Shield size={18} className="text-skin-primary"/> Heroes & Pets</h3><div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">{homeHeroes.map(h => <UnitCard key={h.name} unit={h} type="Hero" />)}{pets.map(p => <UnitCard key={p.name} unit={p} type="Pet" />)}</div></section>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8"><section><h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2"><Sword size={18} className="text-pink-400"/> Elixir Troops</h3><div className="grid grid-cols-2 md:grid-cols-3 gap-2">{elixirTroops.map(t => <UnitCard key={t.name} unit={t} type="Elixir Troop" />)}</div></section><section><h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2"><Zap size={18} className="text-indigo-400"/> Dark Troops</h3><div className="grid grid-cols-2 md:grid-cols-3 gap-2">{darkTroops.map(t => <UnitCard key={t.name} unit={t} type="Dark Troop" />)}</div></section></div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8"><section><h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2"><Clock size={18} className="text-blue-400"/> Spells</h3><div className="grid grid-cols-2 md:grid-cols-3 gap-2">{elixirSpells.map(s => <UnitCard key={s.name} unit={s} type="Elixir Spell" />)}{darkSpells.map(s => <UnitCard key={s.name} unit={s} type="Dark Spell" />)}</div></section>{siegeMachines.length > 0 && (<section><h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2"><Home size={18} className="text-yellow-600"/> Sieges</h3><div className="grid grid-cols-2 md:grid-cols-3 gap-2">{siegeMachines.map(s => <UnitCard key={s.name} unit={s} type="Siege Machine" />)}</div></section>)}</div>
+      {/* --- HEROES & PETS --- */}
+      <section>
+        <h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2">
+            <Shield size={18} className="text-skin-primary"/> Heroes & Pets
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {homeHeroes.map(h => <UnitCard key={h.name} unit={h} type="Hero" />)}
+            {pets.map(p => <UnitCard key={p.name} unit={p} type="Pet" />)}
+        </div>
+      </section>
+
+      {/* --- SUPER TROOPS (NEW SECTION) --- */}
+      {superTroops.length > 0 && (
+          <section>
+            <h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2">
+                <Sparkles size={18} className="text-yellow-400"/> Super Troops
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                {superTroops.map(t => <UnitCard key={t.name} unit={t} type="Super Troop" />)}
+            </div>
+          </section>
+      )}
+
+      {/* --- STANDARD TROOPS --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <section>
+            <h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2">
+                <Sword size={18} className="text-pink-400"/> Elixir Troops
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {elixirTroops.map(t => <UnitCard key={t.name} unit={t} type="Elixir Troop" />)}
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2">
+                <Zap size={18} className="text-indigo-400"/> Dark Troops
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {darkTroops.map(t => <UnitCard key={t.name} unit={t} type="Dark Troop" />)}
+            </div>
+          </section>
+      </div>
+
+      {/* --- SPELLS & SIEGES --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <section>
+            <h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2">
+                <Clock size={18} className="text-blue-400"/> Spells
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {elixirSpells.map(s => <UnitCard key={s.name} unit={s} type="Elixir Spell" />)}
+                {darkSpells.map(s => <UnitCard key={s.name} unit={s} type="Dark Spell" />)}
+            </div>
+          </section>
+          
+          {siegeMachines.length > 0 && (
+            <section>
+                <h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2">
+                    <Home size={18} className="text-yellow-600"/> Sieges
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {siegeMachines.map(s => <UnitCard key={s.name} unit={s} type="Siege Machine" />)}
+                </div>
+            </section>
+          )}
+      </div>
 
       {showShareModal && <ShareProfileModal player={player} onClose={() => setShowShareModal(false)} />}
     </div>
