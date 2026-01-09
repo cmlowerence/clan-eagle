@@ -1,7 +1,7 @@
-'use client';
+ 'use client';
 
 import { useTheme } from "@/components/ThemeProvider";
-import { Search, ArrowRight, Shield, Zap, Skull, User, Users, Clock, Trash2, Sword, TrendingUp, LayoutGrid, Crown } from "lucide-react";
+import { Search, ArrowRight, Shield, Zap, Skull, User, Users, Clock, Trash2, Sword, TrendingUp, LayoutGrid, Crown, Globe } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -41,7 +41,7 @@ export default function Home() {
       {/* BACKGROUND FX */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-skin-primary/10 blur-[100px] rounded-full pointer-events-none -z-10"></div>
       
-      <div className="w-full max-w-5xl px-4 pt-20 pb-12 flex flex-col items-center gap-10 z-10">
+      <div className="w-full max-w-5xl px-4 pt-20 pb-24 flex flex-col items-center gap-10 z-10">
         
         {/* --- HERO SECTION --- */}
         <div className="text-center space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -94,27 +94,34 @@ export default function Home() {
                     </button>
                 </div>
               </form>
+              
+              {/* Search by Name Link */}
+              <div className="text-center mt-3">
+                 <Link href="/search" className="text-xs text-skin-muted hover:text-skin-primary underline decoration-dotted underline-offset-4">
+                    Don't know the tag? Search by Name
+                 </Link>
+              </div>
            </div>
         </div>
 
-        {/* --- TOOLS GRID --- */}
+        {/* --- TOOLS GRID (UPDATED LINKS) --- */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
             <Link href="/army" className="bg-skin-surface border border-skin-primary/10 p-4 rounded-xl flex flex-col items-center gap-2 hover:bg-skin-primary/10 hover:border-skin-primary/30 transition-all group">
                 <div className="w-10 h-10 bg-skin-primary/20 text-skin-primary rounded-full flex items-center justify-center group-hover:scale-110 transition-transform"><Sword size={20}/></div>
                 <span className="text-xs font-bold uppercase text-skin-text">Army Planner</span>
             </Link>
-            <Link href="/compare" className="bg-skin-surface border border-skin-primary/10 p-4 rounded-xl flex flex-col items-center gap-2 hover:bg-skin-secondary/10 hover:border-skin-secondary/30 transition-all group">
-                <div className="w-10 h-10 bg-skin-secondary/20 text-skin-secondary rounded-full flex items-center justify-center group-hover:scale-110 transition-transform"><TrendingUp size={20}/></div>
-                <span className="text-xs font-bold uppercase text-skin-text">Compare</span>
-            </Link>
-            <div className="bg-skin-surface border border-skin-primary/10 p-4 rounded-xl flex flex-col items-center gap-2 opacity-50 cursor-not-allowed">
-                <div className="w-10 h-10 bg-purple-500/20 text-purple-400 rounded-full flex items-center justify-center"><LayoutGrid size={20}/></div>
+            <Link href="/layouts" className="bg-skin-surface border border-skin-primary/10 p-4 rounded-xl flex flex-col items-center gap-2 hover:bg-blue-500/10 hover:border-blue-500/30 transition-all group">
+                <div className="w-10 h-10 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform"><LayoutGrid size={20}/></div>
                 <span className="text-xs font-bold uppercase text-skin-text">Base Layouts</span>
-            </div>
-            <div className="bg-skin-surface border border-skin-primary/10 p-4 rounded-xl flex flex-col items-center gap-2 opacity-50 cursor-not-allowed">
-                <div className="w-10 h-10 bg-red-500/20 text-red-400 rounded-full flex items-center justify-center"><Crown size={20}/></div>
+            </Link>
+            <Link href="/strategies" className="bg-skin-surface border border-skin-primary/10 p-4 rounded-xl flex flex-col items-center gap-2 hover:bg-red-500/10 hover:border-red-500/30 transition-all group">
+                <div className="w-10 h-10 bg-red-500/20 text-red-400 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform"><Crown size={20}/></div>
                 <span className="text-xs font-bold uppercase text-skin-text">Pro Guides</span>
-            </div>
+            </Link>
+            <Link href="/leaderboard" className="bg-skin-surface border border-skin-primary/10 p-4 rounded-xl flex flex-col items-center gap-2 hover:bg-yellow-500/10 hover:border-yellow-500/30 transition-all group">
+                <div className="w-10 h-10 bg-yellow-500/20 text-yellow-400 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform"><Globe size={20}/></div>
+                <span className="text-xs font-bold uppercase text-skin-text">Rankings</span>
+            </Link>
         </div>
 
         {/* --- BATTLE LOG (History) --- */}

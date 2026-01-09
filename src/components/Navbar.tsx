@@ -2,7 +2,7 @@
 
 import { useTheme } from "./ThemeProvider";
 import { THEMES, ThemeType } from "@/lib/themes";
-import { Search, ChevronDown, Star, Trash2, X, Sword, Menu } from "lucide-react";
+import { Search, ChevronDown, Star, Trash2, X, Sword, Menu, LayoutGrid, Crown, Globe } from "lucide-react";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -13,6 +13,7 @@ export default function Navbar() {
   const [searchTag, setSearchTag] = useState("");
   const [isThemeOpen, setIsThemeOpen] = useState(false);
   const [isFavOpen, setIsFavOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [favorites, setFavorites] = useState<any[]>([]);
   
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -25,12 +26,14 @@ export default function Navbar() {
     const tag = searchTag.trim().replace('#', '');
     router.push(`/clan/${encodeURIComponent('#' + tag)}`);
     setSearchTag("");
+    setIsMobileMenuOpen(false); // Close mobile menu if open
   };
 
   const openFavs = () => {
     setFavorites(getFavorites());
     setIsFavOpen(!isFavOpen);
     setIsThemeOpen(false);
+    setIsMobileMenuOpen(false);
   };
 
   const removeFav = (e: React.MouseEvent, tag: string) => {
@@ -56,45 +59,45 @@ export default function Navbar() {
   const activeTheme = THEMES[theme];
 
   return (
-    // FIX: Z-Index set to 100 to stay above Army Planner tabs
     <nav className="border-b border-skin-primary/30 bg-skin-surface/90 backdrop-blur-md sticky top-0 z-[100] shadow-md">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         
-        {/* LOGO */}
-        <Link href="/" className="flex items-center gap-2 group">
+        {/* LEFT: LOGO */}
+        <Link href="/" className="flex items-center gap-2 group z-50">
           <h1 className="text-2xl md:text-3xl font-clash text-skin-text drop-shadow-md group-hover:scale-105 transition-transform">
             CLAN <span className="text-skin-primary">EAGLE</span>
           </h1>
         </Link>
 
-        {/* ACTIONS */}
-        <div className="flex items-center gap-2 md:gap-3">
+        {/* CENTER: DESKTOP NAV */}
+        <div className="hidden lg:flex items-center gap-6">
+            <Link href="/army" className="text-sm font-bold uppercase text-skin-muted hover:text-skin-primary transition-colors flex items-center gap-1"><Sword size={16}/> Army</Link>
+            <Link href="/layouts" className="text-sm font-bold uppercase text-skin-muted hover:text-blue-400 transition-colors flex items-center gap-1"><LayoutGrid size={16}/> Layouts</Link>
+            <Link href="/strategies" className="text-sm font-bold uppercase text-skin-muted hover:text-red-400 transition-colors flex items-center gap-1"><Crown size={16}/> Guides</Link>
+            <Link href="/leaderboard" className="text-sm font-bold uppercase text-skin-muted hover:text-yellow-400 transition-colors flex items-center gap-1"><Globe size={16}/> Rankings</Link>
+        </div>
+
+        {/* RIGHT: ACTIONS */}
+        <div className="flex items-center gap-2 md:gap-3 z-50">
             
-            <form onSubmit={handleSearch} className="hidden md:flex relative w-64 mr-2">
+            {/* SEARCH (Hidden on small mobile) */}
+            <form onSubmit={handleSearch} className="hidden md:flex relative w-48 xl:w-64 mr-2">
               <input 
                 type="text" 
                 placeholder="#CLAN TAG"
                 value={searchTag}
                 onChange={(e) => setSearchTag(e.target.value)}
-                className="w-full bg-skin-bg border-2 border-skin-primary/30 rounded-full py-1.5 px-4 text-sm focus:outline-none focus:border-skin-primary text-skin-text font-bold placeholder:font-normal"
+                className="w-full bg-skin-bg border-2 border-skin-primary/30 rounded-full py-1.5 px-4 text-xs font-bold focus:outline-none focus:border-skin-primary text-skin-text placeholder:font-normal uppercase"
               />
               <button type="submit" className="absolute right-2 top-1.5 text-skin-primary hover:text-skin-secondary transition-colors">
-                <Search size={20} />
+                <Search size={16} />
               </button>
             </form>
 
-            <Link 
-              href="/army" 
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-skin-bg border border-skin-primary/30 hover:bg-skin-primary/20 text-skin-primary transition-colors group relative" 
-              title="Army Planner"
-            >
-               <Sword size={20} className="group-hover:rotate-12 transition-transform"/>
-            </Link>
-
             {/* FAVORITES */}
             <div className="relative" ref={favRef}>
-               <button onClick={openFavs} className={`flex items-center justify-center w-10 h-10 rounded-full border transition-colors ${isFavOpen ? 'bg-skin-primary border-skin-primary text-black' : 'bg-skin-bg border-skin-primary/30 text-skin-primary hover:bg-skin-primary/20'}`}>
-                  <Star size={20} fill={isFavOpen ? "currentColor" : "none"} />
+               <button onClick={openFavs} className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 rounded-full border transition-colors ${isFavOpen ? 'bg-skin-primary border-skin-primary text-black' : 'bg-skin-bg border-skin-primary/30 text-skin-primary hover:bg-skin-primary/20'}`}>
+                  <Star size={18} fill={isFavOpen ? "currentColor" : "none"} />
                </button>
                
                {isFavOpen && (
@@ -125,10 +128,10 @@ export default function Navbar() {
                )}
             </div>
 
-            {/* THEME */}
+            {/* THEME SWITCHER */}
             <div className="relative" ref={dropdownRef}>
               <button onClick={() => setIsThemeOpen(!isThemeOpen)} className="flex items-center gap-2 bg-skin-bg border border-skin-primary/30 rounded-full pl-1 pr-1 md:pr-3 py-1 hover:bg-skin-primary/10 transition-colors">
-                <div className="w-8 h-8 rounded-full overflow-hidden border border-skin-muted/50">
+                <div className="w-7 h-7 md:w-8 md:h-8 rounded-full overflow-hidden border border-skin-muted/50">
                    <img src={`/assets/icons/${activeTheme.icon}`} alt="Theme" className="w-full h-full object-cover" />
                 </div>
                 <span className="hidden md:block text-xs font-bold uppercase text-skin-text">{activeTheme.name}</span>
@@ -150,7 +153,53 @@ export default function Navbar() {
                 </div>
               )}
             </div>
+
+            {/* MOBILE MENU TOGGLE */}
+            <button 
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+                className="lg:hidden w-9 h-9 flex items-center justify-center rounded-full bg-skin-bg border border-skin-primary/30 text-skin-primary hover:bg-skin-primary/10"
+            >
+                {isMobileMenuOpen ? <X size={20}/> : <Menu size={20}/>}
+            </button>
         </div>
+
+        {/* MOBILE MENU DRAWER */}
+        {isMobileMenuOpen && (
+            <div className="absolute top-16 left-0 w-full bg-[#131b24]/95 backdrop-blur-xl border-b border-white/10 p-4 lg:hidden flex flex-col gap-4 animate-in slide-in-from-top-5 shadow-2xl">
+                <form onSubmit={handleSearch} className="relative w-full">
+                  <input 
+                    type="text" 
+                    placeholder="#CLAN TAG"
+                    value={searchTag}
+                    onChange={(e) => setSearchTag(e.target.value)}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-sm font-bold focus:outline-none focus:border-skin-primary text-white uppercase"
+                  />
+                  <button type="submit" className="absolute right-3 top-3 text-skin-muted">
+                    <Search size={18} />
+                  </button>
+                </form>
+
+                <div className="grid grid-cols-2 gap-2">
+                    <Link href="/army" onClick={() => setIsMobileMenuOpen(false)} className="bg-white/5 p-4 rounded-xl flex flex-col items-center gap-2 active:bg-white/10">
+                        <Sword size={24} className="text-skin-primary"/>
+                        <span className="text-xs font-bold uppercase text-white">Army Planner</span>
+                    </Link>
+                    <Link href="/layouts" onClick={() => setIsMobileMenuOpen(false)} className="bg-white/5 p-4 rounded-xl flex flex-col items-center gap-2 active:bg-white/10">
+                        <LayoutGrid size={24} className="text-blue-400"/>
+                        <span className="text-xs font-bold uppercase text-white">Layouts</span>
+                    </Link>
+                    <Link href="/strategies" onClick={() => setIsMobileMenuOpen(false)} className="bg-white/5 p-4 rounded-xl flex flex-col items-center gap-2 active:bg-white/10">
+                        <Crown size={24} className="text-red-400"/>
+                        <span className="text-xs font-bold uppercase text-white">Guides</span>
+                    </Link>
+                    <Link href="/leaderboard" onClick={() => setIsMobileMenuOpen(false)} className="bg-white/5 p-4 rounded-xl flex flex-col items-center gap-2 active:bg-white/10">
+                        <Globe size={24} className="text-yellow-400"/>
+                        <span className="text-xs font-bold uppercase text-white">Rankings</span>
+                    </Link>
+                </div>
+            </div>
+        )}
+
       </div>
     </nav>
   );
