@@ -1,12 +1,11 @@
- import { Sword, Zap, Skull, Shield, Star, Ghost, Flame, Crosshair, Hexagon } from "lucide-react";
+import { Sword, Zap, Skull, Shield, Star, Ghost, Flame, Crosshair, Hexagon } from "lucide-react";
 
 // --- 1. Housing Space Constants ---
 export const HOUSING_SPACE: Record<string, number> = {
   // Elixir Troops
   "Barbarian": 1, "Archer": 1, "Giant": 5, "Goblin": 1, "Wall Breaker": 2,
   "Balloon": 5, "Wizard": 4, "Healer": 14, "Dragon": 20, 
-  "P.E.K.K.A": 25, // Standard spelling used in game API usually
-  "Baby Dragon": 10, "Miner": 6, "Electro Dragon": 30, "Yeti": 18,
+  "P.E.K.K.A": 25, "Baby Dragon": 10, "Miner": 6, "Electro Dragon": 30, "Yeti": 18,
   "Dragon Rider": 25, "Electro Titan": 32, "Root Rider": 20, 
   "Electrofire Wizard": 14, "Druid": 16, "Thrower": 10,
   
@@ -47,7 +46,7 @@ export const UNIT_UNLOCKS: Record<string, number> = {
   "Lava Hound": 9, "Bowler": 10, "Ice Golem": 11, "Headhunter": 12,
   "Apprentice Warden": 13, "Furnace": 17,
   
-  // Super Troops (ALL Unlock at TH11)
+  // Super Troops
   "Super Barbarian": 11, "Super Archer": 11, "Super Wall Breaker": 11, "Super Giant": 11,
   "Sneaky Goblin": 11, "Rocket Balloon": 11, "Super Wizard": 11, "Super Dragon": 11,
   "Inferno Dragon": 11, "Super Minion": 11, "Super Valkyrie": 11, "Super Witch": 11,
@@ -60,13 +59,13 @@ export const UNIT_UNLOCKS: Record<string, number> = {
   "Poison Spell": 8, "Earthquake Spell": 8, "Haste Spell": 9, "Skeleton Spell": 9,
   "Bat Spell": 10, "Overgrowth Spell": 12,
 
-  // Sieges (ALL Unlock at TH12)
+  // Sieges
   "Wall Wrecker": 12, "Battle Blimp": 12, "Stone Slammer": 12, 
   "Siege Barracks": 13, "Log Launcher": 13, "Flame Flinger": 14, 
   "Battle Drill": 15, "Troop Launcher": 16
 };
 
-// --- 3. Categories & Arrays ---
+// --- 3. Categories ---
 const elixirTroops = [
   "Barbarian", "Archer", "Giant", "Goblin", "Wall Breaker", "Balloon", 
   "Wizard", "Healer", "Dragon", "P.E.K.K.A", "Baby Dragon", "Miner", 
@@ -107,14 +106,13 @@ const pets = [
 ];
 
 export const UNIT_CATEGORIES = {
-  // Granular (Profile)
   elixirTroops, darkTroops, superTroops, elixirSpells, darkSpells, pets, sieges,
-  // Combined (Army Planner)
+  // Combined lists for selectors
   troops: [...elixirTroops, ...darkTroops, ...superTroops],
   spells: [...elixirSpells, ...darkSpells]
 };
 
-// --- 4. Town Hall Caps (Max Capacity) ---
+// --- 4. Town Hall Caps ---
 export const TH_CAPS: Record<number, { troops: number; spells: number; sieges: number }> = {
   1: { troops: 20, spells: 0, sieges: 0 },
   2: { troops: 30, spells: 0, sieges: 0 },
@@ -137,13 +135,10 @@ export const TH_CAPS: Record<number, { troops: number; spells: number; sieges: n
 
 // --- 5. Helpers ---
 export const getHousingSpace = (name: string) => HOUSING_SPACE[name] || 0;
-// Default to 1 if not found to prevent lock-out errors
 export const getUnlockLevel = (name: string) => UNIT_UNLOCKS[name] || 1; 
 
 export const getUnitIconPath = (name: string) => {
   if (!name) return '/assets/icons/barbarian.png';
-  // FIX: Replace dots with underscores (P.E.K.K.A -> p_e_k_k_a)
-  // FIX: Replace spaces with underscores
   const slug = name.toLowerCase().replace(/\./g, "_").replace(/ /g, "_");
   return `/assets/icons/${slug}.png`;
 };
