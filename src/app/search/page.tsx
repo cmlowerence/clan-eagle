@@ -3,7 +3,7 @@
 import { useClashSearch } from "@/hooks/useClashSearch";
 import { Search, Users, Shield, Trophy, MapPin, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect } from "react"; // Added useEffect
+import { useState, useEffect } from "react"; 
 import SkeletonLoader from "@/components/SkeletonLoader";
 
 interface ClanResult {
@@ -23,11 +23,13 @@ export default function SearchPage() {
   // DEBUG LOG: Print results whenever they change
   useEffect(() => {
     if (results) {
+      // Cast to 'any' to avoid TS errors during debug
+      const res = results as any;
       console.log("--- FRONTEND DEBUG ---");
-      console.log("Raw API Results:", results);
-      console.log("Has .data property?", !!results.data);
-      console.log("Has .items property?", !!results.items);
-      if (results.data) console.log("Has .data.items?", !!results.data.items);
+      console.log("Raw API Results:", res);
+      console.log("Has .data property?", !!res.data);
+      console.log("Has .items property?", !!res.items);
+      if (res.data) console.log("Has .data.items?", !!res.data.items);
     }
   }, [results]);
 
@@ -36,7 +38,7 @@ export default function SearchPage() {
     if (term.length < 3) return;
     
     const query = `/clans?name=${encodeURIComponent(term)}&limit=20`;
-    console.log("Sending Query:", query); // DEBUG
+    console.log("Sending Query:", query); 
     search(query);
   };
 
