@@ -101,7 +101,8 @@ export default function Navbar() {
                </button>
                
                {isFavOpen && (
-                 <div className="absolute right-0 top-full mt-2 w-72 bg-skin-surface border border-skin-primary/20 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 z-50">
+                 // UPDATED: Fixed positioning on mobile (left-4 right-4) to prevent overflow
+                 <div className="fixed left-4 right-4 top-[4.5rem] md:absolute md:left-auto md:right-0 md:top-full md:mt-2 md:w-72 bg-skin-surface border border-skin-primary/20 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 z-50">
                     <div className="bg-skin-bg/50 p-2 border-b border-skin-primary/10 flex justify-between items-center">
                         <h3 className="text-xs font-bold text-skin-muted uppercase px-2">Bookmarks</h3>
                         <span className="text-[10px] text-skin-muted">{favorites.length} saved</span>
