@@ -3,7 +3,7 @@
 import { useClashData } from "@/hooks/useClashData";
 import { getUnitIconPath, UNIT_CATEGORIES, getUnitCategory } from "@/lib/unitHelpers";
 import { timeAgo, saveToHistory, toggleFavorite, isFavorite } from "@/lib/utils";
-import { ArrowLeft, RefreshCw, Shield, Sword, Home, Zap, Clock, Trophy, ChevronRight, Star, Share2, Sparkles } from "lucide-react";
+import { ArrowLeft, RefreshCw, Shield, Sword, Home, Zap, Clock, Trophy, ChevronRight, Star, Share2, Rocket } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import SkeletonLoader from "@/components/SkeletonLoader";
@@ -61,19 +61,14 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
   if (loading) return <SkeletonLoader />;
   if (!player) return <div className="p-10 text-center font-clash text-xl text-skin-muted">Player not found.</div>;
 
-  // --- FILTERING LOGIC (Fixed) ---
+  // --- FILTERING LOGIC ---
   const homeHeroes = player.heroes.filter(h => h.village === 'home');
-  
-  // Pets: Must explicitly match the list to avoid "Sneezy" (Sneaky Goblin) or others mixing in
   const pets = player.troops.filter(t => UNIT_CATEGORIES.pets.includes(t.name));
-  
-  // All other troops (exclude pets)
   const allTroops = player.troops.filter(t => t.village === 'home' && !UNIT_CATEGORIES.pets.includes(t.name));
   
-  // Categorize Troops
   const elixirTroops = allTroops.filter(t => getUnitCategory(t.name) === 'Elixir Troop');
   const darkTroops = allTroops.filter(t => getUnitCategory(t.name) === 'Dark Troop');
-  const superTroops = allTroops.filter(t => getUnitCategory(t.name) === 'Super Troop'); // NEW
+  const superTroops = allTroops.filter(t => getUnitCategory(t.name) === 'Super Troop');
   const siegeMachines = allTroops.filter(t => getUnitCategory(t.name) === 'Siege Machine');
   
   const elixirSpells = player.spells.filter(s => getUnitCategory(s.name, true) === 'Elixir Spell');
@@ -204,11 +199,11 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
         </div>
       </section>
 
-      {/* --- SUPER TROOPS (NEW SECTION) --- */}
+      {/* --- SUPER TROOPS --- */}
       {superTroops.length > 0 && (
           <section>
             <h3 className="text-lg font-clash text-skin-text mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-skin-muted/10 pb-2">
-                <Sparkles size={18} className="text-yellow-400"/> Super Troops
+                <Rocket size={18} className="text-yellow-400"/> Super Troops
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                 {superTroops.map(t => <UnitCard key={t.name} unit={t} type="Super Troop" />)}

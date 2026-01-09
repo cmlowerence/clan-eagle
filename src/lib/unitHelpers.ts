@@ -1,4 +1,4 @@
-import { Sword, Zap, Skull, Shield, Star, Ghost, Flame, Crosshair, Hexagon, Sparkles } from "lucide-react";
+import { Sword, Zap, Skull, Shield, Star, Ghost, Flame, Crosshair, Hexagon, Rocket } from "lucide-react";
 
 // --- 1. Housing Space Constants ---
 export const HOUSING_SPACE: Record<string, number> = {
@@ -23,7 +23,7 @@ export const HOUSING_SPACE: Record<string, number> = {
 
   // Pets
   "L.A.S.S.I": 0, "Mighty Yak": 0, "Electro Owl": 0, "Unicorn": 0, "Diggy": 0, 
-  "Frosty": 0, "Phoenix": 0, "Poison Lizard": 0, "Spirit Fox": 0, "Angry Jelly": 0, " Sneezy": 0,
+  "Frosty": 0, "Phoenix": 0, "Poison Lizard": 0, "Spirit Fox": 0, "Angry Jelly": 0, "Sneezy": 0,
 
   // Spells
   "Lightning Spell": 1, "Healing Spell": 2, "Rage Spell": 2, "Jump Spell": 2,
@@ -61,7 +61,7 @@ export const UNIT_UNLOCKS: Record<string, number> = {
   // Pets (TH14+)
   "L.A.S.S.I": 14, "Mighty Yak": 14, "Electro Owl": 14, "Unicorn": 14,
   "Diggy": 15, "Frosty": 15, "Phoenix": 15, "Poison Lizard": 15,
-  "Spirit Fox": 16, "Angry Jelly": 16,
+  "Spirit Fox": 16, "Angry Jelly": 16, "Sneezy": 1,
 
   // Spells
   "Lightning Spell": 5, "Healing Spell": 6, "Rage Spell": 7, "Jump Spell": 9,
@@ -174,7 +174,7 @@ export const getCategoryIcon = (category: string) => {
   switch(category) {
     case 'Elixir Troop': return Sword; 
     case 'Dark Troop': return Skull;
-    case 'Super Troop': return Sparkles; // Specific icon for Super Troops
+    case 'Super Troop': return Rocket; // UPDATED ICON
     case 'Pet': return Ghost;
     case 'Siege Machine': return Hexagon; 
     case 'Elixir Spell': return Flame;
