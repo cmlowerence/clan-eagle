@@ -1,14 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Shield, Sword, Lock, Plus, Check, LogOut, Loader2, Play, Eye, ChevronDown, Castle, Link as LinkIcon, RefreshCw } from "lucide-react";
+import { Shield, Sword, Lock, Plus, Check, LogOut, Loader2, Play, Eye, ChevronDown, Castle, Link as LinkIcon, RefreshCw, X } from "lucide-react";
 import { addLayout, addStrategy, verifyAdmin } from "@/lib/actions";
 import { useRouter } from 'next/navigation';
 import UnitSelector from '@/components/admin/UnitSelector';
 import { getUnitIconPath, UNIT_CATEGORIES } from "@/lib/unitHelpers";
 
 // --- COMPLETE CLASH OF CLANS ID MAP ---
-// Used to auto-generate deep links
 const UNIT_ID_MAP: Record<string, number> = {
   // Elixir Troops
   "Barbarian": 1, "Archer": 2, "Giant": 3, "Goblin": 4, "Wall Breaker": 5,
@@ -22,7 +21,7 @@ const UNIT_ID_MAP: Record<string, number> = {
   "Lava Hound": 17, "Bowler": 22, "Ice Golem": 58, "Headhunter": 82,
   "Apprentice Warden": 97, 
   
-  // Super Troops (Using their base ID usually works, or specific Super IDs)
+  // Super Troops
   "Super Barbarian": 26, "Super Archer": 27, "Super Wall Breaker": 29, "Super Giant": 28,
   "Sneaky Goblin": 55, "Rocket Balloon": 57, "Super Wizard": 83, "Super Dragon": 63,
   "Inferno Dragon": 62, "Super Minion": 80, "Super Valkyrie": 64, "Super Witch": 66,
@@ -52,8 +51,11 @@ export default function AdminPanel() {
 
   // Forms
   const [layoutForm, setLayoutForm] = useState({ title: '', townHall: 16, type: 'War', imageUrl: '', copyLink: '' });
+  
+  // UPDATED: 'thInput' replaced with 'townHall' number
   const [stratForm, setStratForm] = useState({ 
-    title: '', description: '', difficulty: 'Medium', videoUrl: '', armyLink: '', thInput: '16', 
+    title: '', description: '', difficulty: 'Medium', videoUrl: '', armyLink: '', 
+    townHall: 16, // Default TH
     armyComp: [] as { unit: string; count: number }[]
   });
 
@@ -62,7 +64,6 @@ export default function AdminPanel() {
   const thDropdownRef = useRef<HTMLDivElement>(null);
   const TOWN_HALLS = Array.from({ length: 17 }, (_, i) => 18 - i);
 
-  // Click Outside Handler
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (thDropdownRef.current && !thDropdownRef.current.contains(event.target as Node)) {
@@ -74,7 +75,6 @@ export default function AdminPanel() {
   }, []);
 
   // --- AUTO-GENERATE ARMY LINK ---
-  // This effect runs every time stratForm.armyComp changes
   useEffect(() => {
     if (stratForm.armyComp.length === 0) {
         setStratForm(prev => ({ ...prev, armyLink: '' }));
@@ -85,29 +85,20 @@ export default function AdminPanel() {
     let spellsPart = "";
 
     stratForm.armyComp.forEach(u => {
-      // Find ID in our map
       const id = UNIT_ID_MAP[u.unit];
-      
-      // Determine if it's a spell (using your categories logic)
       const isSpell = UNIT_CATEGORIES.elixirSpells.includes(u.unit) || UNIT_CATEGORIES.darkSpells.includes(u.unit);
       
       if (id) {
-          if (isSpell) {
-            spellsPart += `-${id}x${u.count}`;
-          } else {
-            troopsPart += `-${id}x${u.count}`;
-          }
+          if (isSpell) spellsPart += `-${id}x${u.count}`;
+          else troopsPart += `-${id}x${u.count}`;
       }
     });
 
-    // Clean up strings (remove leading dashes)
     if (troopsPart.startsWith('-')) troopsPart = troopsPart.substring(1);
     if (spellsPart.startsWith('-')) spellsPart = spellsPart.substring(1);
 
-    // Construct the final URL
     const link = `https://link.clashofclans.com/en?action=OpenArmy&troops=${troopsPart}&spells=${spellsPart}`;
     
-    // Update state only if changed to prevent infinite loops
     setStratForm(prev => {
         if (prev.armyLink !== link) return { ...prev, armyLink: link };
         return prev;
@@ -149,8 +140,8 @@ export default function AdminPanel() {
     if(!stratForm.title || stratForm.armyComp.length === 0) return alert("Title and Army required");
     setLoading(true);
     try {
-        const townHalls = stratForm.thInput.split(',').map(n => parseInt(n.trim()));
-        await addStrategy({ ...stratForm, townHalls });
+        // Send as array [townHall] to match backend expectation of 'town_halls'
+        await addStrategy({ ...stratForm, townHalls: [stratForm.townHall] });
         setMessage('✅ Strategy Added!');
         setStratForm({ ...stratForm, title: '', description: '', armyComp: [], videoUrl: '', armyLink: '' });
         setTimeout(() => setMessage(''), 3000);
@@ -158,7 +149,7 @@ export default function AdminPanel() {
     setLoading(false);
   };
 
-  // --- CUSTOM TH SELECTOR COMPONENT ---
+  // --- REUSABLE TH DROPDOWN COMPONENT ---
   const THSelector = ({ value, onChange }: { value: number, onChange: (val: number) => void }) => (
     <div className="relative w-full" ref={thDropdownRef}>
         <button 
@@ -199,7 +190,7 @@ export default function AdminPanel() {
     </div>
   );
 
-  if (!isAuthenticated) { /* Login Screen ... */ 
+  if (!isAuthenticated) { /* Login Code ... */ 
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
          <div className="bg-[#1f2937] p-8 rounded-xl border border-white/10 text-center space-y-4 w-full max-w-sm shadow-2xl relative overflow-hidden">
@@ -284,20 +275,21 @@ export default function AdminPanel() {
                     <select value={stratForm.difficulty} onChange={e => setStratForm({...stratForm, difficulty: e.target.value})} className="admin-select">
                         <option value="Easy">Easy</option><option value="Medium">Medium</option><option value="Pro">Pro</option>
                     </select>
-                    {/* TH Input */}
-                    <input value={stratForm.thInput} onChange={e => setStratForm({...stratForm, thInput: e.target.value})} placeholder="TH Levels (e.g. 15, 16)" className="admin-input"/>
+                    
+                    {/* UPDATED: VISUAL TH DROPDOWN (Replacing Text Box) */}
+                    <THSelector value={stratForm.townHall} onChange={(val) => setStratForm({...stratForm, townHall: val})} />
                 </div>
 
                 {/* UNIT SELECTOR */}
                 <UnitSelector 
                     army={stratForm.armyComp} 
                     setArmy={(army) => setStratForm({...stratForm, armyComp: army})} 
-                    filterTH={parseInt(stratForm.thInput.split(',')[0] || '16')} 
+                    filterTH={stratForm.townHall} 
                 />
 
                 <input value={stratForm.videoUrl} onChange={e => setStratForm({...stratForm, videoUrl: e.target.value})} placeholder="YouTube URL" className="admin-input"/>
                 
-                {/* AUTO-GENERATED LINK (Read Only for verification) */}
+                {/* AUTO-GENERATED LINK */}
                 <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <LinkIcon size={14} className="text-skin-muted"/>
@@ -317,6 +309,7 @@ export default function AdminPanel() {
                 <div className="bg-[#1a232e] border border-white/5 rounded-2xl p-4 shadow-xl">
                     <div className="flex justify-between items-start mb-2">
                         <h3 className="font-bold text-white text-lg">{stratForm.title || "Strategy Title"}</h3>
+                        <span className="text-[10px] bg-skin-primary text-black px-1.5 py-0.5 rounded font-bold">TH{stratForm.townHall}</span>
                     </div>
                     <div className="bg-[#131b24] p-3 rounded-xl border border-white/5 flex flex-wrap gap-1">
                         {stratForm.armyComp.map((u, i) => (
