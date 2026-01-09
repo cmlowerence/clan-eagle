@@ -6,28 +6,51 @@ import { Plus, Minus, Swords, Zap } from "lucide-react";
 interface UnitSelectorProps {
   army: { unit: string; count: number }[];
   setArmy: (army: { unit: string; count: number }[]) => void;
-  filterTH: number; // For future expansion (restricting units by TH)
+  filterTH: number;
 }
 
 export default function UnitSelector({ army, setArmy, filterTH }: UnitSelectorProps) {
   
   const updateUnit = (unitName: string, delta: number) => {
-    setArmy(prev => {
-      const existing = prev.find(u => u.unit === unitName);
-      if (existing) {
-        const newCount = existing.count + delta;
-        if (newCount <= 0) return prev.filter(u => u.unit !== unitName);
-        return prev.map(u => u.unit === unitName ? { ...u, count: newCount } : u);
+    // FIX: Don't use 'prev', use the 'army' prop directly
+    const existing = army.find(u => u.unit === unitName);
+    let newArmy = [...army];
+
+    if (existing) {
+      const newCount = existing.count + delta;
+      if (newCount <= 0) {
+        // Remove unit if count is 0
+        newArmy = army.filter(u => u.unit !== unitName);
       } else {
-        if (delta > 0) return [...prev, { unit: unitName, count: 1 }];
-        return prev;
+        // Update count
+        newArmy = army.map(u => u.unit === unitName ? { ...u, count: newCount } : u);
       }
-    });
+    } else {
+      // Add new unit
+      if (delta > 0) {
+        newArmy = [...army, { unit: unitName, count: 1 }];
+      }
+    }
+
+    // Send the calculated array to the parent
+    setArmy(newArmy);
   };
 
   // Merge categories for simpler admin view
-  const TROOPS = [...UNIT_CATEGORIES.elixirTroops, ...UNIT_CATEGORIES.darkTroops, ...UNIT_CATEGORIES.superTroops, ...UNIT_CATEGORIES.sieges, ...UNIT_CATEGORIES.pets];
-  const SPELLS = [...UNIT_CATEGORIES.elixirSpells || [], ...UNIT_CATEGORIES.darkSpells];
+  // (Optional: You can keep using UNIT_CATEGORIES.elixirSpells if your helper has it, 
+  // otherwise default to darkSpells or whatever lists you have)
+  const TROOPS = [
+    ...UNIT_CATEGORIES.elixirTroops, 
+    ...UNIT_CATEGORIES.darkTroops, 
+    ...UNIT_CATEGORIES.superTroops, 
+    ...UNIT_CATEGORIES.sieges, 
+    ...UNIT_CATEGORIES.pets
+  ];
+  
+  const SPELLS = [
+    ...(UNIT_CATEGORIES.elixirSpells || []), // Handle if undefined
+    ...UNIT_CATEGORIES.darkSpells
+  ];
 
   return (
     <div className="space-y-6 bg-black/20 p-4 rounded-xl border border-white/5">
@@ -37,7 +60,7 @@ export default function UnitSelector({ army, setArmy, filterTH }: UnitSelectorPr
             {army.length === 0 && <span className="text-xs text-skin-muted italic m-auto">No units selected</span>}
             {army.map((item) => (
                 <div key={item.unit} className="relative w-10 h-10 bg-[#2a3a4b] rounded border border-white/10 group cursor-pointer" onClick={() => updateUnit(item.unit, -1)}>
-                    <img src={getUnitIconPath(item.unit)} className="w-full h-full object-contain" alt=""/>
+                    <img src={getUnitIconPath(item.unit)} className="w-full h-full object-contain" alt={item.unit} />
                     <div className="absolute -top-1.5 -right-1.5 bg-skin-primary text-black text-[10px] font-bold px-1.5 rounded-full border border-white/20 shadow">{item.count}</div>
                     <div className="absolute inset-0 bg-red-500/50 opacity-0 group-hover:opacity-100 rounded flex items-center justify-center transition-opacity"><Minus size={16} className="text-white"/></div>
                 </div>
