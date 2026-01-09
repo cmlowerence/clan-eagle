@@ -59,10 +59,7 @@ export default function RootLayout({
           </div>
         </ThemeProvider>
         
-        {/* Debugger */}
-        <div className="fixed bottom-0 left-0 z-[9999]">
-             <Eruda />
-        </div>
+        
       </body>
     </html>
   );
