@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Shield, Sword, Lock, Plus, Check, LogOut, Loader2, Play, Eye } from "lucide-react";
 import { addLayout, addStrategy, verifyAdmin } from "@/lib/actions";
 import { useRouter } from 'next/navigation';
-import UnitSelector from '@components/admin/UnitSelector'; // Ensure this matches file location
+import UnitSelector from '@/components/admin/UnitSelector'; // Ensure this matches file location
 import { getUnitIconPath } from '@/lib/unitHelpers';
 
 export default function AdminPanel() {
