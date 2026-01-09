@@ -2,6 +2,22 @@
 
 import { supabaseAdmin } from "@/lib/supabase";
 
+// NEW: Server-Side Password Check
+export async function verifyAdmin(inputPassword: string) {
+  const correctPassword = process.env.ADMIN_SECRET_KEY;
+  
+  if (!correctPassword) {
+    console.error("ADMIN_SECRET_KEY is not set in Vercel!");
+    return { success: false, error: "Server misconfigured" };
+  }
+
+  if (inputPassword === correctPassword) {
+    return { success: true };
+  }
+  
+  return { success: false, error: "Incorrect Password" };
+}
+
 export async function addLayout(data: any) {
   const { title, townHall, type, imageUrl, copyLink } = data;
   

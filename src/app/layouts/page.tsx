@@ -1,9 +1,11 @@
 'use client';
 
 import { supabase } from "@/lib/supabase";
-import { useEffect, useState } from "react";
-import { Copy, Map, Filter, ShieldCheck, ExternalLink } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { Copy, Map, Filter, ShieldCheck, ExternalLink, ChevronDown, ArrowLeft, Castle } from "lucide-react";
 import SkeletonLoader from "@/components/SkeletonLoader";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface BaseLayout {
   id: string;
@@ -19,11 +21,16 @@ export default function LayoutsPage() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
+  // Filter States
   const [filterTH, setFilterTH] = useState<number | 'all'>('all');
   const [filterType, setFilterType] = useState<string | 'all'>('all');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
-  // Full list of Town Halls
-  const TOWN_HALLS = Array.from({ length: 16 }, (_, i) => 17 - i); // [17, 16, ... 2]
+  // Town Hall List (17 down to 2)
+  const TOWN_HALLS = Array.from({ length: 16 }, (_, i) => 17 - i);
 
   useEffect(() => {
     async function fetchData() {
@@ -35,6 +42,15 @@ export default function LayoutsPage() {
       } catch (err: any) { setErrorMsg(err.message || "Failed to load layouts."); } finally { setLoading(false); }
     }
     fetchData();
+
+    // Click outside handler for dropdown
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const filtered = layouts.filter(base => {
@@ -43,49 +59,101 @@ export default function LayoutsPage() {
     return true;
   });
 
+  // Helper to render TH Icon with Fallback
+  const THIcon = ({ level, className }: { level: number, className?: string }) => (
+    <div className={`relative flex items-center justify-center bg-black/20 rounded-md overflow-hidden ${className}`}>
+        {/* Placeholder Icon (Generic Castle) */}
+        <Castle className="text-skin-muted opacity-50 w-full h-full p-1" />
+        
+        {/* Real Image (Overlays placeholder if loads) */}
+        <img 
+            src={`/assets/icons/town_hall_${level}.png`} 
+            alt={`TH${level}`}
+            className="absolute inset-0 w-full h-full object-contain"
+            onError={(e) => e.currentTarget.style.display = 'none'}
+        />
+    </div>
+  );
+
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-24 px-4 min-h-[80vh]">
        
-       <div className="text-center space-y-3 pt-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <h1 className="text-4xl md:text-6xl font-clash text-skin-text uppercase tracking-wide drop-shadow-xl">
-             Base Layouts
-          </h1>
-          <p className="text-skin-muted text-sm md:text-base max-w-lg mx-auto">
-             Curated meta bases for War, Farming, and Trophy Pushing. Verified by pros.
-          </p>
+       {/* --- HEADER --- */}
+       <div className="pt-6 flex flex-col items-center relative">
+          {/* Back Button */}
+          <Link href="/" className="absolute left-0 top-6 flex items-center gap-2 text-skin-muted hover:text-skin-primary transition-colors group">
+             <div className="p-2 bg-[#1f2937] rounded-full border border-white/5 group-hover:border-skin-primary/30">
+                <ArrowLeft size={18} />
+             </div>
+             <span className="hidden md:inline text-sm font-bold uppercase tracking-widest">Home</span>
+          </Link>
+
+          <div className="text-center space-y-2 mt-2">
+            <h1 className="text-4xl md:text-5xl font-clash text-white uppercase tracking-wide">
+                Base Layouts
+            </h1>
+            <p className="text-skin-muted text-sm max-w-md mx-auto">
+                Find the perfect defense. Copied straight to your game.
+            </p>
+          </div>
        </div>
 
-       {/* FILTER BAR */}
-       <div className="flex flex-col md:flex-row gap-4 justify-center items-center bg-[#1f2937]/80 backdrop-blur-md p-2 rounded-2xl border border-white/10 w-fit mx-auto shadow-2xl z-10 relative">
+       {/* --- CONTROLS --- */}
+       <div className="flex flex-col md:flex-row gap-4 justify-center items-stretch md:items-center w-full max-w-2xl mx-auto z-20 relative">
           
-          {/* TH Selector */}
-          <div className="relative group">
-             <div className="absolute -inset-0.5 bg-gradient-to-r from-skin-primary to-skin-secondary rounded-xl blur opacity-20 group-hover:opacity-50 transition duration-500"></div>
-             <div className="relative flex items-center gap-3 bg-[#131b24] px-4 py-2.5 rounded-xl border border-white/10">
-                <Filter size={16} className="text-skin-muted"/>
-                <span className="text-xs font-bold text-skin-muted uppercase hidden md:inline">Town Hall:</span>
-                <select 
-                   className="bg-transparent text-white text-sm font-bold outline-none cursor-pointer appearance-none pr-4"
-                   value={filterTH}
-                   onChange={(e) => setFilterTH(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                >
-                   <option value="all" className="bg-[#1f2937]">All Levels</option>
-                   {TOWN_HALLS.map(th => (<option key={th} value={th} className="bg-[#1f2937]">Town Hall {th}</option>))}
-                </select>
-             </div>
+          {/* CUSTOM TH DROPDOWN */}
+          <div className="relative w-full md:w-64" ref={dropdownRef}>
+             <button 
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="w-full flex items-center justify-between bg-[#1f2937] hover:bg-[#253041] px-4 py-3 rounded-xl border border-white/10 transition-colors"
+             >
+                <div className="flex items-center gap-3">
+                    {filterTH === 'all' ? (
+                        <div className="w-8 h-8 flex items-center justify-center bg-black/20 rounded-md"><Filter size={16} className="text-skin-muted"/></div>
+                    ) : (
+                        <THIcon level={filterTH as number} className="w-8 h-8" />
+                    )}
+                    <span className="text-sm font-bold text-white uppercase">
+                        {filterTH === 'all' ? "All Town Halls" : `Town Hall ${filterTH}`}
+                    </span>
+                </div>
+                <ChevronDown size={16} className={`text-skin-muted transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}/>
+             </button>
+
+             {/* Dropdown Menu */}
+             {isDropdownOpen && (
+                <div className="absolute top-full mt-2 left-0 w-full max-h-80 overflow-y-auto bg-[#1f2937] border border-white/10 rounded-xl shadow-2xl z-50 custom-scrollbar animate-in fade-in slide-in-from-top-2">
+                    <button 
+                        onClick={() => { setFilterTH('all'); setIsDropdownOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 border-b border-white/5 text-left"
+                    >
+                        <div className="w-8 h-8 flex items-center justify-center bg-black/20 rounded-md"><Filter size={16} className="text-skin-muted"/></div>
+                        <span className="text-sm font-bold text-skin-muted uppercase">All Levels</span>
+                    </button>
+                    
+                    {TOWN_HALLS.map(th => (
+                        <button 
+                            key={th} 
+                            onClick={() => { setFilterTH(th); setIsDropdownOpen(false); }}
+                            className={`w-full flex items-center gap-3 px-4 py-2 hover:bg-white/5 transition-colors text-left ${filterTH === th ? 'bg-skin-primary/10 border-l-2 border-skin-primary' : ''}`}
+                        >
+                            <THIcon level={th} className="w-8 h-8" />
+                            <span className={`text-sm font-bold uppercase ${filterTH === th ? 'text-white' : 'text-skin-muted'}`}>Town Hall {th}</span>
+                        </button>
+                    ))}
+                </div>
+             )}
           </div>
 
-          <div className="w-px h-8 bg-white/10 hidden md:block"></div>
-
-          {/* Type Toggles */}
-          <div className="flex gap-1 bg-black/20 p-1 rounded-lg border border-white/5">
-             {['War', 'Farm', 'Troll'].map(type => (
+          {/* Type Toggles (Plain Buttons) */}
+          <div className="flex bg-[#1f2937] p-1 rounded-xl border border-white/10">
+             {['all', 'War', 'Farm'].map((type) => (
                 <button 
                    key={type}
-                   onClick={() => setFilterType(filterType === type ? 'all' : type)}
-                   className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all tracking-wider ${
+                   onClick={() => setFilterType(type as any)}
+                   className={`flex-1 px-4 py-2.5 rounded-lg text-xs font-bold uppercase transition-all tracking-wider ${
                       filterType === type 
-                        ? 'bg-skin-primary text-black shadow-lg' 
+                        ? 'bg-skin-primary text-black shadow-md' 
                         : 'text-skin-muted hover:text-white hover:bg-white/5'
                    }`}
                 >
@@ -95,27 +163,29 @@ export default function LayoutsPage() {
           </div>
        </div>
 
+       {/* --- LOADING --- */}
        {loading && <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{[...Array(6)].map((_, i) => <SkeletonLoader key={i} />)}</div>}
 
-       {/* EMPTY STATE */}
+       {/* --- EMPTY STATE --- */}
        {!loading && !errorMsg && filtered.length === 0 && (
-          <div className="text-center py-24 opacity-60 flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
-             <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center border border-white/5">
+          <div className="text-center py-24 opacity-60 flex flex-col items-center gap-4">
+             <div className="w-20 h-20 bg-[#1f2937] rounded-full flex items-center justify-center border border-white/5">
                 <Map size={40} className="text-skin-muted"/>
              </div>
              <div>
                 <p className="text-white font-clash text-xl">No layouts found</p>
-                <p className="text-skin-muted text-sm">Try adjusting your filters for TH{filterTH}</p>
+                <p className="text-skin-muted text-sm">No bases uploaded for TH{filterTH} yet.</p>
              </div>
              <button onClick={() => { setFilterTH('all'); setFilterType('all'); }} className="text-xs text-skin-primary hover:text-skin-secondary underline decoration-dotted underline-offset-4 transition-colors">
-                Clear all filters
+                Reset Filters
              </button>
           </div>
        )}
 
+       {/* --- GRID --- */}
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map(base => (
-             <div key={base.id} className="group relative bg-[#1a232e] border border-white/5 rounded-2xl overflow-hidden hover:border-skin-primary/30 transition-all duration-300 hover:shadow-[0_0_30px_-10px_rgba(var(--color-primary),0.15)] flex flex-col h-full">
+             <div key={base.id} className="group bg-[#1a232e] border border-white/5 rounded-xl overflow-hidden hover:border-skin-primary/30 transition-all flex flex-col h-full shadow-lg">
                 
                 {/* Image Area */}
                 <div className="aspect-[16/9] relative bg-[#0c1219] overflow-hidden border-b border-white/5">
@@ -127,49 +197,41 @@ export default function LayoutsPage() {
                    />
                    
                    {/* Fallback */}
-                   <div className="hidden absolute inset-0 flex flex-col items-center justify-center text-skin-muted bg-[#0c1219] gap-3">
-                      <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center border border-white/5">
-                         <ShieldCheck size={24} className="text-skin-primary opacity-40"/>
-                      </div>
-                      <span className="text-[10px] font-mono opacity-40 uppercase tracking-widest">Preview Missing</span>
+                   <div className="hidden absolute inset-0 flex flex-col items-center justify-center text-skin-muted bg-[#0c1219] gap-2">
+                      <ShieldCheck size={32} className="text-skin-muted opacity-20"/>
+                      <span className="text-[10px] font-mono opacity-30 uppercase tracking-widest">No Preview</span>
                    </div>
 
-                   {/* Badges */}
+                   {/* Plain Badges */}
                    <div className="absolute top-2 right-2">
-                      <span className="bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-md border border-white/10 shadow-lg">
-                         TH {base.town_hall}
-                      </span>
+                      <span className="bg-black/80 text-white text-[10px] font-bold px-2 py-1 rounded border border-white/10">TH {base.town_hall}</span>
                    </div>
                    <div className="absolute bottom-2 left-2">
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider shadow-lg ${
-                         base.type === 'War' ? 'bg-red-500/90 text-white' : 
-                         base.type === 'Farm' ? 'bg-green-500/90 text-white' : 
-                         'bg-gray-500/90 text-white'
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider ${
+                         base.type === 'War' ? 'bg-red-900/80 text-red-200 border border-red-500/20' : 
+                         base.type === 'Farm' ? 'bg-green-900/80 text-green-200 border border-green-500/20' : 
+                         'bg-gray-800 text-gray-300 border border-white/10'
                       }`}>
                          {base.type}
                       </span>
                    </div>
                 </div>
                 
-                <div className="p-5 flex flex-col flex-1 gap-4">
-                   <div className="flex-1">
-                      <h3 className="font-bold text-white text-lg leading-tight group-hover:text-skin-primary transition-colors line-clamp-1 mb-1">
+                <div className="p-4 flex flex-col flex-1 gap-3">
+                   <h3 className="font-bold text-white text-lg leading-tight truncate">
                          {base.title}
-                      </h3>
-                      <p className="text-xs text-skin-muted line-clamp-2 opacity-70">
-                         Optimized for {base.type === 'War' ? 'defense against current meta.' : 'protecting resources.'}
-                      </p>
-                   </div>
+                   </h3>
                    
-                   {/* REFINED BUTTON */}
-                   <a 
-                      href={base.copy_link} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 w-full bg-[#2a3a4b] hover:bg-skin-primary text-white hover:text-black border border-white/5 hover:border-skin-primary font-sans text-sm py-3 rounded-xl transition-all duration-300 active:scale-95 shadow-lg group-hover:shadow-skin-primary/20 font-semibold tracking-wide"
-                   >
-                      <Copy size={16} /> <span>Copy Base Link</span> <ExternalLink size={12} className="opacity-50"/>
-                   </a>
+                   <div className="mt-auto pt-2">
+                     <a 
+                        href={base.copy_link} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full bg-[#2a3a4b] hover:bg-skin-primary text-white hover:text-black border border-white/5 hover:border-skin-primary font-sans text-xs py-3 rounded-lg transition-all active:scale-95 font-bold uppercase tracking-wide"
+                     >
+                        <Copy size={14} /> Copy Link
+                     </a>
+                   </div>
                 </div>
              </div>
           ))}

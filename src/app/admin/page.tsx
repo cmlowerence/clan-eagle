@@ -1,14 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { Shield, Sword, Lock, Plus, Check, LogOut } from "lucide-react";
-import { addLayout, addStrategy } from "@/lib/actions";
+import { Shield, Sword, Lock, Plus, Check, LogOut, Loader2 } from "lucide-react";
+import { addLayout, addStrategy, verifyAdmin } from "@/lib/actions"; // Import verifyAdmin
 
 export default function AdminPanel() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [secret, setSecret] = useState('');
   const [activeTab, setActiveTab] = useState<'layout' | 'strategy'>('layout');
   const [loading, setLoading] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false); // New loading state for login
   const [message, setMessage] = useState('');
 
   // Form States
@@ -18,18 +19,29 @@ export default function AdminPanel() {
     description: '', 
     difficulty: 'Medium', 
     videoUrl: '', 
-    armyLink: '', // NEW FIELD
+    armyLink: '', 
     thInput: '16', 
     armyInput: '' 
   });
 
-  const handleLogin = () => {
-    // Simple client-side check. 
-    // In production, use a real auth cookie/session, but this works for personal tools.
-    if(secret === 'EagleAdmin2026') { 
+  // UPDATED LOGIN FUNCTION
+  const handleLogin = async () => {
+    if (!secret) return;
+    setLoginLoading(true);
+    
+    try {
+      // Call the server action to check password
+      const result = await verifyAdmin(secret);
+      
+      if (result.success) {
         setIsAuthenticated(true);
-    } else {
-        alert('Access Denied');
+      } else {
+        alert(result.error || 'Access Denied');
+      }
+    } catch (error) {
+      alert("Login failed. Check connection.");
+    } finally {
+      setLoginLoading(false);
     }
   };
 
@@ -53,13 +65,10 @@ export default function AdminPanel() {
     try {
         const townHalls = stratForm.thInput.split(',').map(n => parseInt(n.trim()));
         
-        // Simple Parser: Convert "7x Root Rider" -> JSON
-        // You can make this smarter later, or just type raw JSON if you prefer.
-        // For now, we will store a simple object wrapper.
         const armyComp = stratForm.armyInput.split(',').map(s => {
-            const parts = s.trim().split('x '); // Expects "5x Healer"
+            const parts = s.trim().split('x '); 
             if(parts.length === 2) return { count: parseInt(parts[0]), unit: parts[1] };
-            return { count: 1, unit: s.trim() }; // Fallback
+            return { count: 1, unit: s.trim() }; 
         });
         
         await addStrategy({ ...stratForm, townHalls, armyComp });
@@ -84,8 +93,15 @@ export default function AdminPanel() {
               className="bg-black/30 text-white px-4 py-3 rounded-lg border border-white/10 w-full text-center outline-none focus:border-skin-primary transition-colors"
               onChange={(e) => setSecret(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+              disabled={loginLoading}
             />
-            <button onClick={handleLogin} className="w-full bg-skin-primary text-black font-bold py-3 rounded-lg hover:bg-skin-secondary transition-colors">UNLOCK</button>
+            <button 
+              onClick={handleLogin} 
+              disabled={loginLoading}
+              className="w-full bg-skin-primary text-black font-bold py-3 rounded-lg hover:bg-skin-secondary transition-colors flex items-center justify-center gap-2"
+            >
+              {loginLoading ? <Loader2 size={18} className="animate-spin"/> : "UNLOCK"}
+            </button>
          </div>
       </div>
     );
