@@ -113,7 +113,7 @@ const sieges = [
 
 const pets = [
   "L.A.S.S.I", "Mighty Yak", "Electro Owl", "Unicorn", "Diggy", "Frosty", 
-  "Phoenix", "Poison Lizard", "Spirit Fox", "Angry Jelly", " Sneezy"
+  "Phoenix", "Poison Lizard", "Spirit Fox", "Angry Jelly", "Sneezy"
 ];
 
 export const UNIT_CATEGORIES = {
