@@ -13,6 +13,27 @@ import { PlayerData } from "./_components/types";
 import PlayerHero from "./_components/PlayerHero";
 import UnitSection from "./_components/UnitSection";
 
+// --- CONSTANTS ---
+// Map Super Troops to their Original counterpart names
+const SUPER_TROOP_MAPPING: Record<string, string> = {
+  "Super Barbarian": "Barbarian",
+  "Super Archer": "Archer",
+  "Super Giant": "Giant",
+  "Sneaky Goblin": "Goblin",
+  "Super Wall Breaker": "Wall Breaker",
+  "Rocket Balloon": "Balloon",
+  "Super Wizard": "Wizard",
+  "Super Dragon": "Dragon",
+  "Inferno Dragon": "Baby Dragon",
+  "Super Minion": "Minion",
+  "Super Valkyrie": "Valkyrie",
+  "Super Witch": "Witch",
+  "Ice Hound": "Lava Hound",
+  "Super Bowler": "Bowler",
+  "Super Miner": "Miner",
+  "Super Hog Rider": "Hog Rider"
+};
+
 export default function PlayerPage({ params }: { params: { tag: string } }) {
   const tag = decodeURIComponent(params.tag);
   const [isFav, setIsFav] = useState(false);
@@ -40,20 +61,42 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
   if (loading) return <SkeletonLoader />;
   if (!player) return <div className="p-10 text-center font-clash text-xl text-skin-muted">Player not found.</div>;
 
-  // --- FILTERING LOGIC ---
+  // --- FILTERING & LOGIC ---
+
+  // 1. Separate Heroes and Pets
   const homeHeroes = player.heroes.filter(h => h.village === 'home');
   const pets = player.troops.filter(t => UNIT_CATEGORIES.pets.includes(t.name));
-  
-  // Combine Heroes & Pets for one section
   const heroesAndPets = [...homeHeroes, ...pets];
 
-  const allTroops = player.troops.filter(t => t.village === 'home' && !UNIT_CATEGORIES.pets.includes(t.name));
+  // 2. Get all Home Village troops (excluding pets)
+  const allHomeTroops = player.troops.filter(t => t.village === 'home' && !UNIT_CATEGORIES.pets.includes(t.name));
   
-  const elixirTroops = allTroops.filter(t => getUnitCategory(t.name) === 'Elixir Troop');
-  const darkTroops = allTroops.filter(t => getUnitCategory(t.name) === 'Dark Troop');
-  const superTroops = allTroops.filter(t => getUnitCategory(t.name) === 'Super Troop');
-  const siegeMachines = allTroops.filter(t => getUnitCategory(t.name) === 'Siege Machine');
+  // 3. Super Troop Logic: Sync Level with Original Troop
+  // We filter for Super Troops, then map over them to find their "parent" in the full list
+  const superTroops = allHomeTroops
+    .filter(t => getUnitCategory(t.name) === 'Super Troop')
+    .map(superTroop => {
+      const originalName = SUPER_TROOP_MAPPING[superTroop.name];
+      const originalTroop = allHomeTroops.find(t => t.name === originalName);
+
+      // If we find the original troop, we override the Super Troop's level/maxLevel 
+      // with the Original's data to ensure accuracy.
+      if (originalTroop) {
+        return {
+          ...superTroop,
+          level: originalTroop.level,
+          maxLevel: originalTroop.maxLevel
+        };
+      }
+      return superTroop;
+    });
+
+  // 4. Standard Categories
+  const elixirTroops = allHomeTroops.filter(t => getUnitCategory(t.name) === 'Elixir Troop');
+  const darkTroops = allHomeTroops.filter(t => getUnitCategory(t.name) === 'Dark Troop');
+  const siegeMachines = allHomeTroops.filter(t => getUnitCategory(t.name) === 'Siege Machine');
   
+  // 5. Spells
   const elixirSpells = player.spells.filter(s => getUnitCategory(s.name, true) === 'Elixir Spell');
   const darkSpells = player.spells.filter(s => getUnitCategory(s.name, true) === 'Dark Spell');
   const allSpells = [...elixirSpells, ...darkSpells];
@@ -82,6 +125,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
       />
 
       {/* 3. Super Troops (Icon: Rocket) */}
+      {/* These now have the levels of their original counterparts */}
       <UnitSection 
         title="Super Troops" 
         icon={<Rocket size={18} className="text-yellow-400" />} 
@@ -98,7 +142,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
             type="Elixir Troop"
           />
 
-          {/* 5. Dark Troops (Icon: Dark Drop - Indigo/Purple for contrast on dark/light) */}
+          {/* 5. Dark Troops (Icon: Dark Drop) */}
           <UnitSection 
             title="Dark Troops" 
             icon={<Droplets size={18} className="text-indigo-500 dark:text-indigo-400" />} 
@@ -108,7 +152,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* 6. Spells (Icon: Flask/Beaker) */}
+          {/* 6. Spells (Icon: Flask) */}
           <UnitSection 
             title="Spells" 
             icon={<FlaskConical size={18} className="text-blue-400" />} 
@@ -116,7 +160,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
             type="Spell"
           />
           
-          {/* 7. Sieges (Icon: Hammer/Tool) */}
+          {/* 7. Sieges (Icon: Hammer) */}
           <UnitSection 
             title="Siege Machines" 
             icon={<Hammer size={18} className="text-yellow-600 dark:text-yellow-500" />} 
