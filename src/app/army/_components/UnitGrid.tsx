@@ -3,10 +3,11 @@ import { Lock } from "lucide-react";
 
 interface Props {
   activeTab: 'troops' | 'spells' | 'sieges';
-  army: Record<string, number>;
+  army: Record < string,
+  number > ;
   thLevel: number;
-  stats: { troopSpace: number; spellSpace: number; siegeCount: number; superCount: number };
-  caps: { troops: number; spells: number; sieges: number };
+  stats: { troopSpace: number;spellSpace: number;siegeCount: number;superCount: number };
+  caps: { troops: number;spells: number;sieges: number };
   updateUnit: (name: string, delta: number) => void;
   isSuper: (name: string) => boolean;
 }
@@ -21,7 +22,6 @@ export default function UnitGrid({ activeTab, army, thLevel, stats, caps, update
         const unlockLevel = getUnlockLevel(unitName);
         const isLocked = thLevel < unlockLevel;
 
-        // Calculate if army is full for this unit type
         let isFull = false;
         if (activeTab === 'troops' && (stats.troopSpace + space) > caps.troops) isFull = true;
         if (activeTab === 'spells' && (stats.spellSpace + space) > caps.spells) isFull = true;
@@ -50,17 +50,16 @@ export default function UnitGrid({ activeTab, army, thLevel, stats, caps, update
             key={unitName}
             onClick={() => updateUnit(unitName, 1)}
             disabled={isFull}
-            className={`bg-skin-surface border rounded-xl p-2 relative flex flex-col items-center justify-between h-[110px] gap-1 transition-all touch-none select-none
+            // FIXED: Removed 'touch-none' so scrolling works when dragging on buttons
+            className={`bg-skin-surface border rounded-xl p-2 relative flex flex-col items-center justify-between h-[110px] gap-1 transition-all select-none
                ${count > 0 ? 'border-skin-primary bg-skin-primary/5' : 'border-skin-primary/10 hover:border-skin-primary/30 hover:bg-skin-surface/80'}
                ${isFull ? 'opacity-50 cursor-not-allowed grayscale-[0.3]' : 'active:scale-95'}
             `}
           >
-            {/* Housing Space Badge */}
             <div className="absolute top-1 right-1 text-[9px] font-bold text-skin-muted bg-skin-bg/80 px-1 rounded-sm z-10 border border-white/5 shadow-sm">
               {space}
             </div>
 
-            {/* Icon */}
             <div className="relative w-full flex-1 flex items-center justify-center mt-2">
               <img
                 src={iconPath}
@@ -72,7 +71,6 @@ export default function UnitGrid({ activeTab, army, thLevel, stats, caps, update
                 <CatIcon size={24} className="text-skin-muted opacity-50" />
               </div>
               
-              {/* Selected Count Badge */}
               {count > 0 && !isFull && (
                 <div className="absolute -bottom-1 -right-1 bg-skin-primary text-black font-black text-[10px] w-5 h-5 flex items-center justify-center rounded-full border border-skin-bg shadow-sm animate-in zoom-in">
                   {count}
@@ -80,12 +78,10 @@ export default function UnitGrid({ activeTab, army, thLevel, stats, caps, update
               )}
             </div>
 
-            {/* Name */}
             <div className="text-center w-full mt-1 mb-1">
               <div className="text-[10px] font-bold text-skin-text truncate leading-tight px-1">{unitName}</div>
             </div>
 
-            {/* Full Overlay */}
             {isFull && (
               <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center backdrop-blur-[1px] z-20">
                 <span className="text-xs font-bold text-red-200 uppercase drop-shadow-md border border-red-500/30 px-2 py-0.5 rounded bg-black/40">Full</span>
