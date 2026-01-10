@@ -15,15 +15,30 @@ export default function ArmyFooter({ stats, caps, generateLink, hasUnits }: Prop
         {/* Stats Container */}
         <div className="flex items-center justify-around md:justify-start gap-6 text-sm w-full md:w-auto px-2">
           
-          <StatItem label="Troops" current={stats.troopSpace} max={caps.troops} colorClass={stats.troopSpace > caps.troops ? 'text-red-500' : stats.troopSpace === caps.troops ? 'text-green-400' : 'text-skin-text'} />
+          <StatItem 
+            label="Troops" 
+            current={stats.troopSpace} 
+            max={caps.troops} 
+            colorClass={stats.troopSpace > caps.troops ? 'text-red-500' : stats.troopSpace === caps.troops ? 'text-green-400' : 'text-skin-text'} 
+          />
           
           <div className="h-6 w-px bg-white/10 hidden md:block"></div>
           
-          <StatItem label="Spells" current={stats.spellSpace} max={caps.spells} colorClass={stats.spellSpace > caps.spells ? 'text-red-500' : stats.spellSpace === caps.spells ? 'text-green-400' : 'text-skin-secondary'} />
+          <StatItem 
+            label="Spells" 
+            current={stats.spellSpace} 
+            max={caps.spells} 
+            colorClass={stats.spellSpace > caps.spells ? 'text-red-500' : stats.spellSpace === caps.spells ? 'text-green-400' : 'text-skin-secondary'} 
+          />
           
           <div className="h-6 w-px bg-white/10 hidden md:block"></div>
           
-          <StatItem label="Sieges" current={stats.siegeCount} max={caps.sieges} colorClass={stats.siegeCount > caps.siegeCount ? 'text-red-500' : stats.siegeCount === caps.sieges ? 'text-green-400' : 'text-orange-500'} />
+          <StatItem 
+            label="Sieges" 
+            current={stats.siegeCount} 
+            max={caps.sieges} 
+            colorClass={stats.siegeCount > caps.sieges ? 'text-red-500' : stats.siegeCount === caps.sieges ? 'text-green-400' : 'text-orange-500'} 
+          />
         
         </div>
 
