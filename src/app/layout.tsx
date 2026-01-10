@@ -3,8 +3,8 @@ import { Inter, Luckiest_Guy } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer"; // Import the Footer
-import Eruda from "@/components/Eruda";
+import Footer from "@/components/Footer";
+import BackgroundSlider from "@/components/BackgroundSlider";
 
 const inter = Inter({ 
   subsets: ["latin"], 
@@ -19,7 +19,6 @@ const clashFont = Luckiest_Guy({
   display: 'swap',
 });
 
-// PWA & Meta Configuration
 export const metadata: Metadata = {
   title: "Clan Eagle",
   description: "Advanced Clash of Clans Tracker & Army Planner",
@@ -44,9 +43,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${clashFont.variable} font-sans bg-skin-bg text-skin-text transition-colors duration-300 min-h-screen relative`}>
-        {/* TEXTURE OVERLAY */}
-        <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>
+      <body className={`${inter.variable} ${clashFont.variable} font-sans text-skin-text min-h-screen relative overflow-x-hidden`}>
+        
+        {/* Dynamic Background */}
+        <BackgroundSlider />
+
+        {/* Texture Pattern Overlay */}
+        <div className="fixed inset-0 pointer-events-none opacity-[0.05] z-[-40] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>
         
         <ThemeProvider>
           <div className="relative z-10 flex flex-col min-h-screen">
@@ -54,11 +57,9 @@ export default function RootLayout({
             <main className="container mx-auto px-4 py-6 flex-1">
               {children}
             </main>
-            {/* New Footer with Admin Access */}
             <Footer />
           </div>
         </ThemeProvider>
-        
         
       </body>
     </html>

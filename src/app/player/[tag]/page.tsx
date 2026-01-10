@@ -3,7 +3,7 @@
 import { useClashData } from "@/hooks/useClashData";
 import { UNIT_CATEGORIES, getUnitCategory } from "@/lib/unitHelpers";
 import { saveToHistory, toggleFavorite, isFavorite } from "@/lib/utils";
-import { Crown, Droplets, Hammer, Rocket, FlaskConical } from "lucide-react";
+import { Crown, Droplet, Hammer, Rocket, FlaskConical } from "lucide-react";
 import { useEffect, useState } from "react";
 import SkeletonLoader from "@/components/SkeletonLoader";
 import ShareProfileModal from "@/components/ShareProfileModal";
@@ -14,7 +14,6 @@ import PlayerHero from "./_components/PlayerHero";
 import UnitSection from "./_components/UnitSection";
 
 // --- CONSTANTS ---
-// Map Super Troops to their Original counterpart names
 const SUPER_TROOP_MAPPING: Record<string, string> = {
   "Super Barbarian": "Barbarian",
   "Super Archer": "Archer",
@@ -31,7 +30,8 @@ const SUPER_TROOP_MAPPING: Record<string, string> = {
   "Ice Hound": "Lava Hound",
   "Super Bowler": "Bowler",
   "Super Miner": "Miner",
-  "Super Hog Rider": "Hog Rider"
+  "Super Hog Rider": "Hog Rider",
+  "Super Yeti": "Yeti"
 };
 
 export default function PlayerPage({ params }: { params: { tag: string } }) {
@@ -63,16 +63,14 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
 
   // --- FILTERING & LOGIC ---
 
-  // 1. Separate Heroes and Pets
   const homeHeroes = player.heroes.filter(h => h.village === 'home');
   const pets = player.troops.filter(t => UNIT_CATEGORIES.pets.includes(t.name));
   const heroesAndPets = [...homeHeroes, ...pets];
 
-  // 2. Get all Home Village troops (excluding pets)
+ 
   const allHomeTroops = player.troops.filter(t => t.village === 'home' && !UNIT_CATEGORIES.pets.includes(t.name));
   
-  // 3. Super Troop Logic: Sync Level with Original Troop
-  // We filter for Super Troops, then map over them to find their "parent" in the full list
+
   const superTroops = allHomeTroops
     .filter(t => getUnitCategory(t.name) === 'Super Troop')
     .map(superTroop => {
@@ -125,7 +123,6 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
       />
 
       {/* 3. Super Troops (Icon: Rocket) */}
-      {/* These now have the levels of their original counterparts */}
       <UnitSection 
         title="Super Troops" 
         icon={<Rocket size={18} className="text-yellow-400" />} 
@@ -137,7 +134,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
           {/* 4. Elixir Troops (Icon: Pink Drop) */}
           <UnitSection 
             title="Elixir Troops" 
-            icon={<Droplets size={18} className="text-pink-400" />} 
+            icon={<Droplet size={18} className="text-pink-400" />} 
             units={elixirTroops} 
             type="Elixir Troop"
           />
@@ -145,7 +142,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
           {/* 5. Dark Troops (Icon: Dark Drop) */}
           <UnitSection 
             title="Dark Troops" 
-            icon={<Droplets size={18} className="text-indigo-500 dark:text-indigo-400" />} 
+            icon={<Droplet size={18} className="text-indigo-500 dark:text-indigo-400" />} 
             units={darkTroops} 
             type="Dark Troop"
           />
