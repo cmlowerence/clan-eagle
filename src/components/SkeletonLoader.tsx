@@ -3,12 +3,12 @@ export default function SkeletonLoader() {
 
   return (
     <div className="w-full space-y-6 p-4 animate-pulse">
-      {/* Banner Skeleton */}
+      {/* Banner Area */}
       <div className="bg-skin-surface h-48 rounded-2xl w-full relative overflow-hidden border border-skin-primary/20">
         <div className={shimmer}></div>
       </div>
       
-      {/* Grid Skeleton */}
+      {/* Content Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
          {[...Array(8)].map((_, i) => (
            <div key={i} className="bg-skin-surface h-20 rounded-lg relative overflow-hidden border border-skin-primary/10 flex items-center p-2 gap-3">
