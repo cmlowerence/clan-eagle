@@ -10,6 +10,8 @@ export interface PlayerData {
   expLevel: number;
   trophies: number;
   warStars: number;
+  attackWins: number; 
+  defenseWins: number;
   heroes: Hero[];
   clan?: { name: string };
 }
