@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import BackgroundSlider from "@/components/BackgroundSlider";
+import Eruda from "@/components/Eruda";
 
 const inter = Inter({ 
   subsets: ["latin"], 
@@ -60,6 +61,9 @@ export default function RootLayout({
             <Footer />
           </div>
         </ThemeProvider>
+        <div className="fixed z-1000 b-0 r-0">
+          <Eruda />
+        </div>
         
       </body>
     </html>
