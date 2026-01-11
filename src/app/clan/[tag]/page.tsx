@@ -22,23 +22,26 @@ interface RaidSeasonsResponse {
 }
 
 export default function ClanPage({ params }: { params: { tag: string } }) {
+  // Ensure tag is decoded (e.g. "%23TAG" -> "#TAG")
   const tag = decodeURIComponent(params.tag);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
 
   // --- Data Fetching ---
+  // We pass the raw tag directly. The Hook & Middleware handle encoding.
   const { data: clan, loading: clanLoading, isCached, timestamp, refresh: refreshClan } = useClashData<ClanData>(`clan_${tag}`, `/clans/${tag}`);
+  
+  // Conditional fetches could be optimized, but keeping them here ensures data readiness when tabs switch
   const { data: cwl, loading: cwlLoading, refresh: refreshCWL } = useClashData<CWLData>(`cwl_${tag}`, `/clans/${tag}/currentwar/leaguegroup`);
   const { data: warData, loading: warLoading, refresh: refreshWar } = useClashData<WarData>(`war_${tag}`, `/clans/${tag}/currentwar`);
   const { data: raidData, loading: raidLoading, refresh: refreshRaids } = useClashData<RaidSeasonsResponse>(`raids_${tag}`, `/clans/${tag}/capitalraidseasons?limit=10`);
 
-  // --- Effects ---
+  // --- History & Effects ---
   useEffect(() => {
     if (clan) {
       saveToHistory(clan.tag, clan.name, 'clan', clan.badgeUrls.small);
     }
   }, [clan]);
 
-  // --- Handlers ---
   const handleRefresh = () => {
     refreshClan();
     if (activeTab === 'cwl') refreshCWL();
@@ -82,6 +85,7 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
         <div className="min-h-[300px] space-y-6">
           {warLoading && <SkeletonLoader />}
           
+          {/* Empty State for War */}
           {!warLoading && !warData && (
             <div className="text-center py-10 opacity-50 font-clash">
               No active war data found.<br />
@@ -89,6 +93,7 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
             </div>
           )}
 
+          {/* War Content */}
           {!warLoading && warData && (
             <>
               <ClanWarStatus warData={warData} />
@@ -98,7 +103,8 @@ export default function ClanPage({ params }: { params: { tag: string } }) {
 
           {/* War History Log */}
           <div className="pt-6 border-t border-white/10">
-            <WarLog clanTag={clan.tag.replace('#', '')} />
+            {/* FIX: Pass the full tag. Do NOT use .replace('#','') here anymore. */}
+            <WarLog clanTag={clan.tag} />
           </div>
         </div>
       )}

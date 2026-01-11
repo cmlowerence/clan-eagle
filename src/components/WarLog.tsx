@@ -1,74 +1,105 @@
 'use client';
 
 import { useClashData } from "@/hooks/useClashData";
-import { Sword, Star, Percent, Skull } from "lucide-react";
+import { Sword, Star, Percent, Skull, Lock } from "lucide-react";
 
+// --- SUB-COMPONENT: Individual War Row ---
+const WarLogItem = ({ war }: { war: any }) => {
+  const isWin = war.result === 'win';
+  const isTie = war.result === 'tie';
+  
+  // Dynamic Styles based on result
+  const styles = {
+    border: isWin ? 'border-l-green-500' : isTie ? 'border-l-gray-500' : 'border-l-red-500',
+    bg: isWin ? 'bg-green-500/5' : 'bg-red-500/5',
+    badge: isWin ? 'bg-green-500 text-black' : isTie ? 'bg-gray-400 text-black' : 'bg-red-500 text-white'
+  };
+
+  // Safe Date Formatter (Handle YYYYMMDDTHH...)
+  const formatDate = (dateStr: string) => {
+    try {
+      const year = dateStr.substring(0,4);
+      const month = dateStr.substring(4,6);
+      const day = dateStr.substring(6,8);
+      return new Date(`${year}-${month}-${day}`).toLocaleDateString();
+    } catch { return "Unknown Date"; }
+  };
+
+  return (
+    <div className={`relative flex items-center justify-between p-3 bg-[#1f2937] ${styles.bg} border border-white/5 border-l-4 ${styles.border} rounded-r-lg`}>
+       
+       {/* Opponent Details */}
+       <div className="flex-1 min-w-0 pr-4">
+          <div className="flex items-center gap-2 mb-1">
+             <span className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${styles.badge}`}>
+                {war.result ? war.result : "N/A"}
+             </span>
+             <span className="font-bold text-white truncate text-sm">{war.opponent.name}</span>
+          </div>
+          <div className="text-[10px] text-skin-muted flex items-center gap-2">
+             <span>{formatDate(war.endTime)}</span>
+             <span className="opacity-50">•</span>
+             <span>{war.teamSize} vs {war.teamSize}</span>
+          </div>
+       </div>
+
+       {/* Score Stats */}
+       <div className="text-right shrink-0 flex flex-col items-end gap-0.5">
+          <span className="text-sm font-clash text-white flex items-center gap-1">
+             <Star size={12} className="text-yellow-500 fill-yellow-500"/>
+             {war.clan.stars} - {war.opponent.stars}
+          </span>
+          <span className="text-[10px] text-skin-muted flex items-center gap-1">
+             <Percent size={10}/> {war.clan.destructionPercentage.toFixed(1)}%
+          </span>
+       </div>
+    </div>
+  );
+};
+
+// --- MAIN COMPONENT ---
 export default function WarLog({ clanTag }: { clanTag: string }) {
-  // Fetch War Log
-  const { data: logData, loading } = useClashData<any>(
+  // Pass raw tag. The hook + middleware handles the '#' encoding safely.
+  const { data: logData, loading, error } = useClashData<any>(
     `warlog_${clanTag}`, 
     `/clans/${clanTag}/warlog?limit=20`
   );
 
-  if (loading) return <div className="py-10 text-center text-skin-muted animate-pulse">Loading War History...</div>;
+  // 1. Loading State
+  if (loading) return <div className="py-10 text-center text-skin-muted animate-pulse text-xs uppercase tracking-widest">Loading War History...</div>;
   
-  if (!logData || logData.items?.length === 0) {
+  // 2. Private Log State (403 Error)
+  if (error && error.includes("Access Denied")) {
      return (
-        <div className="p-8 text-center border border-white/5 rounded-xl bg-black/20">
-           <div className="inline-flex p-3 rounded-full bg-red-500/10 text-red-400 mb-2"><Skull size={24}/></div>
-           <p className="text-skin-muted">War Log is Private or Empty.</p>
+        <div className="p-8 text-center border border-white/5 rounded-xl bg-black/20 flex flex-col items-center gap-3">
+           <div className="p-3 rounded-full bg-red-500/10 text-red-400"><Lock size={20}/></div>
+           <p className="text-skin-muted text-sm">Clan War Log is Private.</p>
         </div>
      );
   }
 
+  // 3. Empty State
+  if (!logData || !logData.items || logData.items.length === 0) {
+     return (
+        <div className="p-8 text-center border border-white/5 rounded-xl bg-black/20 flex flex-col items-center gap-3">
+           <div className="p-3 rounded-full bg-white/5 text-skin-muted"><Skull size={20}/></div>
+           <p className="text-skin-muted text-sm">No recent wars found.</p>
+        </div>
+     );
+  }
+
+  // 4. Data View
   return (
     <div className="space-y-4 animate-in slide-in-from-bottom-2">
-       <h3 className="text-sm font-bold text-skin-muted uppercase tracking-widest border-b border-white/5 pb-2">Recent Wars</h3>
+       <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+          <Sword size={14} className="text-skin-primary"/>
+          <h3 className="text-xs font-bold text-skin-muted uppercase tracking-widest">Recent Wars</h3>
+       </div>
        
        <div className="grid gap-2">
-          {logData.items.map((war: any, i: number) => {
-             const isWin = war.result === 'win';
-             const isTie = war.result === 'tie';
-             const colorClass = isWin ? 'border-l-green-500' : isTie ? 'border-l-gray-500' : 'border-l-red-500';
-             const bgClass = isWin ? 'bg-green-500/5' : 'bg-red-500/5';
-             
-             // Format Date (EndDate is usually YYYYMMDD...)
-             const date = new Date(
-                war.endTime.substring(0,4) + '-' + 
-                war.endTime.substring(4,6) + '-' + 
-                war.endTime.substring(6,8)
-             ).toLocaleDateString();
-
-             return (
-               <div key={i} className={`relative flex items-center justify-between p-3 bg-[#1f2937] ${bgClass} border border-white/5 border-l-4 ${colorClass} rounded-r-lg`}>
-                  
-                  {/* Opponent */}
-                  <div className="flex-1">
-                     <div className="flex items-center gap-2">
-                        <span className={`text-xs font-black uppercase px-1.5 py-0.5 rounded text-black ${isWin ? 'bg-green-500' : isTie ? 'bg-gray-400' : 'bg-red-500'}`}>
-                           {war.result || "N/A"}
-                        </span>
-                        <span className="font-bold text-white truncate">{war.opponent.name}</span>
-                     </div>
-                     <div className="text-[10px] text-skin-muted mt-1">{date} • {war.teamSize} vs {war.teamSize}</div>
-                  </div>
-
-                  {/* Score */}
-                  <div className="text-right flex items-center gap-4">
-                     <div className="flex flex-col items-end">
-                        <span className="text-sm font-clash text-white flex items-center gap-1">
-                           <Star size={12} className="text-yellow-500 fill-yellow-500"/>
-                           {war.clan.stars} - {war.opponent.stars}
-                        </span>
-                        <span className="text-[10px] text-skin-muted flex items-center gap-1">
-                           <Percent size={10}/> {war.clan.destructionPercentage.toFixed(1)}%
-                        </span>
-                     </div>
-                  </div>
-
-               </div>
-             );
-          })}
+          {logData.items.map((war: any, i: number) => (
+             <WarLogItem key={i} war={war} />
+          ))}
        </div>
     </div>
   );

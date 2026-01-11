@@ -1,10 +1,11 @@
 'use client';
 
+import { useEffect, useState } from "react";
+import { Crown, Droplet, Hammer, Rocket, FlaskConical } from "lucide-react";
+
 import { useClashData } from "@/hooks/useClashData";
 import { UNIT_CATEGORIES, getUnitCategory } from "@/lib/unitHelpers";
 import { saveToHistory, toggleFavorite, isFavorite } from "@/lib/utils";
-import { Crown, Droplet, Hammer, Rocket, FlaskConical } from "lucide-react";
-import { useEffect, useState } from "react";
 import SkeletonLoader from "@/components/SkeletonLoader";
 import ShareProfileModal from "@/components/ShareProfileModal";
 
@@ -13,7 +14,7 @@ import { PlayerData } from "./_components/types";
 import PlayerHero from "./_components/PlayerHero";
 import UnitSection from "./_components/UnitSection";
 
-// --- CONSTANTS ---
+// Map Super Troops to their original counterparts for level synchronization
 const SUPER_TROOP_MAPPING: Record<string, string> = {
   "Super Barbarian": "Barbarian",
   "Super Archer": "Archer",
@@ -35,14 +36,19 @@ const SUPER_TROOP_MAPPING: Record<string, string> = {
 };
 
 export default function PlayerPage({ params }: { params: { tag: string } }) {
+  // Decode param to get the raw tag (e.g., "#P282...")
   const tag = decodeURIComponent(params.tag);
+  
   const [isFav, setIsFav] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   
-  // Data Fetching
-  const { data: player, loading, isCached, timestamp, refresh } = useClashData<PlayerData>(`player_${tag}`, `/players/${tag}`);
+  // Fetch Data: Pass the raw tag directly. Middleware handles encoding.
+  const { data: player, loading, isCached, timestamp, refresh } = useClashData<PlayerData>(
+    `player_${tag}`, 
+    `/players/${tag}`
+  );
 
-  // Sync History & Fav State
+  // Sync History & Favorite State
   useEffect(() => {
     if (player) {
       const icon = `/assets/icons/town_hall_${player.townHallLevel}.png`;
@@ -52,7 +58,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
   }, [player]);
 
   const handleFav = () => {
-    if(!player) return;
+    if (!player) return;
     const icon = `/assets/icons/town_hall_${player.townHallLevel}.png`;
     const newState = toggleFavorite(player.tag, player.name, 'player', icon);
     setIsFav(newState);
@@ -61,24 +67,23 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
   if (loading) return <SkeletonLoader />;
   if (!player) return <div className="p-10 text-center font-clash text-xl text-skin-muted">Player not found.</div>;
 
-  // --- FILTERING & LOGIC ---
+  // --- DATA PROCESSING & FILTERING ---
 
+  // 1. Heroes & Pets
   const homeHeroes = player.heroes.filter(h => h.village === 'home');
   const pets = player.troops.filter(t => UNIT_CATEGORIES.pets.includes(t.name));
   const heroesAndPets = [...homeHeroes, ...pets];
 
- 
+  // 2. Base Troops (Home Village, excluding Pets)
   const allHomeTroops = player.troops.filter(t => t.village === 'home' && !UNIT_CATEGORIES.pets.includes(t.name));
-  
 
+  // 3. Super Troops: Sync levels with original troops
   const superTroops = allHomeTroops
     .filter(t => getUnitCategory(t.name) === 'Super Troop')
     .map(superTroop => {
       const originalName = SUPER_TROOP_MAPPING[superTroop.name];
       const originalTroop = allHomeTroops.find(t => t.name === originalName);
 
-      // If we find the original troop, we override the Super Troop's level/maxLevel 
-      // with the Original's data to ensure accuracy.
       if (originalTroop) {
         return {
           ...superTroop,
@@ -89,7 +94,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
       return superTroop;
     });
 
-  // 4. Standard Categories
+  // 4. Categorize Standard Troops
   const elixirTroops = allHomeTroops.filter(t => getUnitCategory(t.name) === 'Elixir Troop');
   const darkTroops = allHomeTroops.filter(t => getUnitCategory(t.name) === 'Dark Troop');
   const siegeMachines = allHomeTroops.filter(t => getUnitCategory(t.name) === 'Siege Machine');
@@ -102,7 +107,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
   return (
     <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-20">
       
-      {/* 1. Header & Stats */}
+      {/* Header Section */}
       <PlayerHero 
         player={player} 
         isFav={isFav} 
@@ -114,7 +119,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
         timestamp={timestamp}
       />
 
-      {/* 2. Heroes & Pets (Icon: Crown) */}
+      {/* Heroes & Pets */}
       <UnitSection 
         title="Heroes & Pets" 
         icon={<Crown size={18} className="text-skin-primary" />} 
@@ -122,7 +127,7 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
         type="Hero"
       />
 
-      {/* 3. Super Troops (Icon: Rocket) */}
+      {/* Super Troops */}
       <UnitSection 
         title="Super Troops" 
         icon={<Rocket size={18} className="text-yellow-400" />} 
@@ -130,8 +135,8 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
         type="Super Troop"
       />
 
+      {/* Main Troops Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* 4. Elixir Troops (Icon: Pink Drop) */}
           <UnitSection 
             title="Elixir Troops" 
             icon={<Droplet size={18} className="text-pink-400" />} 
@@ -139,7 +144,6 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
             type="Elixir Troop"
           />
 
-          {/* 5. Dark Troops (Icon: Dark Drop) */}
           <UnitSection 
             title="Dark Troops" 
             icon={<Droplet size={18} className="text-indigo-500 dark:text-indigo-400" />} 
@@ -148,8 +152,8 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
           />
       </div>
 
+      {/* Spells & Sieges Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* 6. Spells (Icon: Flask) */}
           <UnitSection 
             title="Spells" 
             icon={<FlaskConical size={18} className="text-blue-400" />} 
@@ -157,7 +161,6 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
             type="Spell"
           />
           
-          {/* 7. Sieges (Icon: Hammer) */}
           <UnitSection 
             title="Siege Machines" 
             icon={<Hammer size={18} className="text-yellow-600 dark:text-yellow-500" />} 
@@ -166,7 +169,9 @@ export default function PlayerPage({ params }: { params: { tag: string } }) {
           />
       </div>
 
-      {showShareModal && <ShareProfileModal player={player} onClose={() => setShowShareModal(false)} />}
+      {showShareModal && (
+        <ShareProfileModal player={player} onClose={() => setShowShareModal(false)} />
+      )}
     </div>
   );
 }
