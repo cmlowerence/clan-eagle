@@ -5,8 +5,8 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import BackgroundSlider from "@/components/BackgroundSlider";
-import Eruda from "@/components/Eruda";
-import ErrorBoundary from "@/components/ErrorBoundary";
+// import Eruda from "@/components/Eruda";
+// import ErrorBoundary from "@/components/ErrorBoundary";
 
 const inter = Inter({ 
   subsets: ["latin"], 
@@ -56,17 +56,17 @@ export default function RootLayout({
             <Navbar />
             <main className="container mx-auto px-4 py-6 flex-1">
               {/* Wraps page content to catch crashes without breaking the layout */}
-              <ErrorBoundary>
+              {/*<ErrorBoundary>*/}
                 {children}
-              </ErrorBoundary>
+              {/*</ErrorBoundary>*/}
             </main>
             <Footer />
           </div>
         </ThemeProvider>
 
-        <div className="fixed z-[1000] bottom-0 right-0">
+        {/*<div className="fixed z-[1000] bottom-0 right-0">
           <Eruda />
-        </div>
+        </div>*/}
         
       </body>
     </html>
