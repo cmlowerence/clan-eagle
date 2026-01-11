@@ -5,18 +5,15 @@ import { useState, useEffect, useCallback } from 'react';
 export function useClashData<T>(key: string, endpoint: string) {
   const [data, setData] = useState<T | null>(null);
   
-  // 1. VALIDATION: Prevent requests for invalid/empty endpoints
+  // Validation
   const isValidEndpoint = endpoint && !endpoint.includes('undefined') && !endpoint.includes('null') && endpoint !== '';
   
-  // Initialize loading to TRUE only if endpoint is valid (prevents UI flash)
   const [loading, setLoading] = useState(!!isValidEndpoint);
-  
   const [isCached, setIsCached] = useState(false);
   const [timestamp, setTimestamp] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadData = useCallback(async (forceUpdate = false) => {
-    // Stop immediately if endpoint is invalid
     if (!isValidEndpoint) {
         setLoading(false);
         return;
@@ -36,82 +33,78 @@ export function useClashData<T>(key: string, endpoint: string) {
             const parsed = JSON.parse(cachedRaw);
             const ageMinutes = (Date.now() - parsed.timestamp) / 1000 / 60;
             
-            // Cache Policy: Valid for 12 Hours (720 minutes)
+            // Cache Policy: Valid for 12 Hours
             if (ageMinutes < 720) {
-                // If we have cached "null" (e.g. Clan not in war), we accept it validly
                 setData(parsed.data as T);
                 setIsCached(true);
                 setTimestamp(parsed.timestamp);
                 setLoading(false);
-                return; // Stop here, use cache
+                return; 
             }
           } catch (e) {
-            // If parse fails, clear invalid cache
             localStorage.removeItem(storageKey);
           }
         }
       }
 
       // --- STEP 2: FETCH FROM PROXY (Network Path) ---
-      // We encode the endpoint to handle '#' characters in tags safely
       const proxyUrl = `/api/proxy?endpoint=${encodeURIComponent(endpoint)}`;
-      
       const res = await fetch(proxyUrl, { cache: 'no-store' });
 
-      // Handle Specific Middleware Responses
-      if (res.status === 403) {
-        throw new Error("Access Denied: Private War Log");
-      }
-
-      // If 404, it means "Resource Not Found" (or Clan not in war)
-      // We treat this as valid "empty" data, not a crash error.
+      if (res.status === 403) throw new Error("Access Denied: Private War Log");
       if (res.status === 404) {
-         // We cache this "null" result to prevent spamming the API for missing resources
+         // Cache "null" for 404s to prevent spamming
          const nullData = null;
          const newTimestamp = Date.now();
-         
-         localStorage.setItem(storageKey, JSON.stringify({
-           data: nullData,
-           timestamp: newTimestamp
-         }));
-
+         localStorage.setItem(storageKey, JSON.stringify({ data: nullData, timestamp: newTimestamp }));
          setData(null);
          setLoading(false);
          return;
       }
+      if (!res.ok) throw new Error(`API Error ${res.status}`);
 
-      if (!res.ok) {
-        throw new Error(`API Error ${res.status}`);
+      const rawJson = await res.json();
+
+      // --- CRITICAL FIX: UNWRAP DATA ---
+      // If API returns { cached: boolean, data: {...} }, we extract just the inner 'data'
+      let cleanData = rawJson;
+      if (rawJson && typeof rawJson === 'object' && 'data' in rawJson) {
+         cleanData = rawJson.data;
       }
 
-      // The middleware now returns the data DIRECTLY (normalized)
-      const actualData = await res.json();
       const newTimestamp = Date.now();
       
       // --- STEP 3: SAVE TO LOCAL STORAGE ---
       try {
           localStorage.setItem(storageKey, JSON.stringify({
-            data: actualData,
+            data: cleanData,
             timestamp: newTimestamp
           }));
       } catch (e) {
           console.warn('LocalStorage Full or Error:', e);
       }
 
-      setData(actualData);
-      setIsCached(false); // This was a fresh network fetch
+      setData(cleanData);
+      setIsCached(false); 
       setTimestamp(newTimestamp);
 
     } catch (err: any) {
       console.error(`[useClashData] Error fetching ${endpoint}:`, err);
-      setError(err.message || "Failed to fetch data");
+      // Don't set error state for 404s (handled above), but do for others
+      if (err.message !== "Not Found" && err.message !== "Access Denied: Private War Log") {
+          setError(err.message || "Failed to fetch data");
+      }
+      // If access denied, we still want the component to know about the specific error
+      if (err.message === "Access Denied: Private War Log") {
+          setError(err.message);
+      }
+      
       setData(null); 
     } finally {
       setLoading(false);
     }
   }, [key, endpoint, isValidEndpoint]);
 
-  // Initial Fetch
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -122,6 +115,6 @@ export function useClashData<T>(key: string, endpoint: string) {
     isCached, 
     timestamp, 
     error, 
-    refresh: () => loadData(true) // Helper to force-refresh (bypass cache)
+    refresh: () => loadData(true) 
   };
 }
