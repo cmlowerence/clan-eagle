@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const endpoint = searchParams.get('endpoint'); // e.g., /clans?name=...
+  const endpoint = searchParams.get('endpoint'); // e.g., /clans/#TAG/capitalraidseasons...
 
   if (!endpoint) {
     return NextResponse.json({ error: 'Endpoint missing' }, { status: 400 });
@@ -13,30 +13,29 @@ export async function GET(request: NextRequest) {
   const BACKEND_URL = 'https://coc-api-functional.onrender.com/api';
 
   // --- HELPER: NORMALIZE DATA ---
-  // This flattens the weird nested structures from the API
+  // Flattens inconsistent API response structures into a standard { items: [] } format
   const normalizeResponse = (data: any) => {
-    // Case 1: API returns { data: { items: [...] } } (Your observed structure)
-    if (data?.data?.items) {
-        return { items: data.data.items };
-    }
-    // Case 2: API returns { items: [...] } (Standard CoC API)
-    if (data?.items) {
-        return { items: data.items };
-    }
-    // Case 3: API returns direct Array [...]
-    if (Array.isArray(data)) {
-        return { items: data };
-    }
-    // Case 4: Single object (Profile lookup)
+    if (data?.data?.items) return { items: data.data.items };
+    if (data?.items) return { items: data.items };
+    if (Array.isArray(data)) return { items: data };
     return data;
   };
 
-  // --- 1. SEARCH REQUESTS (Contains '?') ---
-  if (endpoint.includes('?')) {
-     try {
-        const targetUrl = `${BACKEND_URL}${endpoint}`;
-        console.log(`[Proxy] Fetching: ${targetUrl}`);
+  // --- HELPER: SANITIZE ENDPOINT ---
+  // Ensures tags with '#' are correctly encoded as '%23' for the fetch call.
+  // We do this regardless of frontend input, as searchParams decodes automatically.
+  const createSafeUrl = (path: string) => {
+    // If the path contains a literal '#', replace it with '%23'
+    // This prevents fetch() from treating the tag as a URL fragment
+    return `${BACKEND_URL}${path.replace(/#/g, '%23')}`;
+  };
 
+  // --- 1. COMPLEX REQUESTS (Query Params / Specific Paths) ---
+  // Used for: Raid Seasons, War Logs, or Search Filters
+  if (endpoint.includes('?') || endpoint.split('/').length > 3) {
+     try {
+        const targetUrl = createSafeUrl(endpoint);
+        
         const res = await fetch(targetUrl, {
             headers: { 
                 'Content-Type': 'application/json',
@@ -47,13 +46,7 @@ export async function GET(request: NextRequest) {
 
         if (res.ok) {
             const rawData = await res.json();
-            // NORMALIZE BEFORE SENDING
-            const cleanData = normalizeResponse(rawData);
-            
-            console.log(`[Proxy] Success. Normalized Keys: ${Object.keys(cleanData)}`);
-            if(cleanData.items) console.log(`[Proxy] Items found: ${cleanData.items.length}`);
-            
-            return NextResponse.json(cleanData);
+            return NextResponse.json(normalizeResponse(rawData));
         } else {
             return NextResponse.json(
                 { error: `Backend API Error: ${res.status}` }, 
@@ -65,22 +58,24 @@ export async function GET(request: NextRequest) {
      }
   }
 
-  // --- 2. TAG LOOKUP LOGIC ---
+  // --- 2. SIMPLE TAG LOOKUP (Robust Fallback) ---
+  // Used for: Clan or Player profile lookups.
+  // We try multiple encoding variations to ensure we find the resource.
   const variations = [
-    endpoint.replace(/#/g, '%23'),
-    endpoint.replace(/#/g, '%2523'),
-    endpoint,
-    endpoint.replace(/#/g, ''),
+    endpoint.replace(/#/g, '%23'),   // Standard encoded (# -> %23)
+    endpoint.replace(/#/g, '%2523'), // Double encoded (sometimes needed for specific proxies)
+    endpoint,                        // Raw
   ];
 
-  // Unique filter
-  const uniqueVariations = variations.filter((value, index, self) => self.indexOf(value) === index);
+  // Remove duplicates
+  const uniqueVariations = Array.from(new Set(variations));
 
-  let lastErrorStr = '';
   let successfulData = null;
+  let lastErrorStr = '';
 
   for (const path of uniqueVariations) {
     const targetUrl = `${BACKEND_URL}${path}`;
+    
     try {
       const res = await fetch(targetUrl, {
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -89,9 +84,9 @@ export async function GET(request: NextRequest) {
 
       if (res.ok) {
         successfulData = await res.json();
-        break; 
+        break; // Stop once we find data
       } else {
-        lastErrorStr = `Status ${res.status} on ${path}`;
+        lastErrorStr = `Status ${res.status}`;
       }
     } catch (error: any) {
       lastErrorStr = error.message;
@@ -99,7 +94,6 @@ export async function GET(request: NextRequest) {
   }
 
   if (successfulData) {
-    // Normalize here too just in case
     return NextResponse.json(normalizeResponse(successfulData));
   }
 
