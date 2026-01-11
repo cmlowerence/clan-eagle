@@ -16,44 +16,47 @@ export default function LeaderboardPage() {
 
   const locId = LOCATIONS[location].id;
   
-  // Data Fetching
-  // Note: The endpoint is clean. The middleware handles the request.
-  const { data: rankingData, loading } = useClashData<{ items: RankingItemData[] }>(
+  // 1. Fetch Data
+  const { data: rankingData, loading, error } = useClashData<{ items: RankingItemData[] }>(
     `rank_${location}_${type}`, 
     `/locations/${locId}/rankings/${type}?limit=20`
   );
 
+  // 2. CRITICAL SAFETY CHECK: Ensure 'items' is always an array
+  // If rankingData is null, default to empty array []
   const items = rankingData?.items || [];
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 min-h-[80vh]">
        
-       {/* 1. Header & Controls */}
        <LeaderboardHeader location={location} setLocation={setLocation} />
-
-       {/* 2. Type Tabs */}
        <LeaderboardTabs type={type} setType={setType} />
 
-       {/* 3. Ranking Table */}
        <div className="bg-[#1f2937] rounded-xl border border-white/5 overflow-hidden min-h-[200px]">
           {loading ? (
              <div className="p-4 space-y-4">
                 <SkeletonLoader />
                 <SkeletonLoader />
-                <SkeletonLoader />
+             </div>
+          ) : error ? (
+             // 3. Error State (Prevent crash if API fails)
+             <div className="p-10 text-center text-red-400">
+                Failed to load rankings. <br/>
+                <span className="text-xs opacity-70">{error}</span>
              </div>
           ) : (
              <div className="divide-y divide-white/5">
-                {items.map((item, idx) => (
-                   <RankingItem 
-                     key={item.tag} 
-                     item={item} 
-                     type={type} 
-                     rank={item.rank} 
-                   />
-                ))}
-                
-                {items.length === 0 && (
+                {items.length > 0 ? (
+                   items.map((item, idx) => (
+                      <RankingItem 
+                        // Use tag + idx as key to prevent duplicates crashing React
+                        key={`${item.tag}-${idx}`} 
+                        item={item} 
+                        type={type} 
+                        rank={item.rank} 
+                      />
+                   ))
+                ) : (
                    <div className="p-10 text-center text-skin-muted opacity-50">
                       No rankings found.
                    </div>

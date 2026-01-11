@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import BackgroundSlider from "@/components/BackgroundSlider";
 import Eruda from "@/components/Eruda";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const inter = Inter({ 
   subsets: ["latin"], 
@@ -46,22 +47,24 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} ${clashFont.variable} font-sans text-skin-text min-h-screen relative overflow-x-hidden`}>
         
-        {/* Dynamic Background */}
         <BackgroundSlider />
 
-        {/* Texture Pattern Overlay */}
         <div className="fixed inset-0 pointer-events-none opacity-[0.05] z-[-40] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>
         
         <ThemeProvider>
           <div className="relative z-10 flex flex-col min-h-screen">
             <Navbar />
             <main className="container mx-auto px-4 py-6 flex-1">
-              {children}
+              {/* Wraps page content to catch crashes without breaking the layout */}
+              <ErrorBoundary>
+                {children}
+              </ErrorBoundary>
             </main>
             <Footer />
           </div>
         </ThemeProvider>
-        <div className="fixed z-1000 b-0 r-0">
+
+        <div className="fixed z-[1000] bottom-0 right-0">
           <Eruda />
         </div>
         
